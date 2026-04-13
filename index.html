@@ -651,13 +651,38 @@ body::before {
   flex-shrink: 0;
   font-weight: 300;
 }
+
+/* ── CARD ACTIONS ── */
+.card-meta { position: relative; }
+.card-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.card:hover .card-actions, .card:focus-within .card-actions { opacity: 1; }
+@media (max-width: 768px) { .card-actions { opacity: 1; } }
+.card-action-btn {
+  width: 30px; height: 30px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text3);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, color 0.15s;
+}
+.card-action-btn:hover, .card-action-btn:active { background: var(--surface2); color: var(--text); }
+.card-delete-btn:hover, .card-delete-btn:active { background: #fdeade; color: var(--orange); }
 </style>
 </head>
 <body>
 
 <!-- HERO -->
 <div class="hero">
-  <div class="hero-eyebrow">Basketball Journal · 2024</div>
+  <div class="hero-eyebrow">Keep going bro 🏀</div>
   <div class="hero-title">Lee 的<span>篮球</span>空间</div>
   <div class="hero-desc">球员 · 教练 · 裁判 &nbsp;|&nbsp; 环哲队 &nbsp;|&nbsp; 同一片球场，三种目光</div>
   <div class="role-pills">
@@ -764,7 +789,7 @@ body::before {
 <!-- ADD MODAL -->
 <div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
   <div class="modal">
-    <div class="modal-title">新建记录</div>
+    <div class="modal-title" id="modal-title">新建记录</div>
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">日期</label>
@@ -870,6 +895,14 @@ function buildCardInner(role, fmtDate, tag, title, text, chipHtml) {
       <div class="card-meta">
         <span class="card-date">${fmtDate}</span>
         ${tag ? `<span class="card-tag" style="background:${rc.dim};color:${rc.accent}">${tag}</span>` : ''}
+        <div class="card-actions">
+          <button class="card-action-btn" onclick="editCard(this.closest('.card'))" title="编辑">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9.5 2.5l2 2L4 12H2v-2L9.5 2.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="card-action-btn card-delete-btn" onclick="deleteCard(this.closest('.card'))" title="删除">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M5 4V2.5h4V4M5.5 6.5v4M8.5 6.5v4M3 4l.8 7.5h6.4L11 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
       </div>
       <div class="card-title">${title}</div>
       <div class="card-text">${text}</div>
@@ -1138,7 +1171,59 @@ function openModal() {
 }
 function closeModal() {
   document.getElementById('modal-overlay').classList.remove('open');
+  delete document.getElementById('modal-overlay').dataset.editId;
+  document.getElementById('modal-title').textContent = '新建记录';
+  ['f-tag','f-title','f-text','f-chips'].forEach(id => document.getElementById(id).value = '');
 }
+
+// ── EDIT CARD ──
+function editCard(card) {
+  const id = card.dataset.id;
+  const role = card.dataset.role;
+  const date = card.dataset.date || '';
+  const title = card.querySelector('.card-title')?.textContent || '';
+  const text = card.querySelector('.card-text')?.textContent || '';
+  const tag = card.querySelector('.card-tag')?.textContent || '';
+  const chips = Array.from(card.querySelectorAll('.chip')).map(c=>c.textContent).join(', ');
+
+  document.getElementById('f-date').value = date;
+  document.getElementById('f-role').value = role;
+  document.getElementById('f-tag').value = tag;
+  document.getElementById('f-title').value = title;
+  document.getElementById('f-text').value = text;
+  document.getElementById('f-chips').value = chips;
+
+  // store editing id
+  document.getElementById('modal-overlay').dataset.editId = id;
+  document.getElementById('modal-title').textContent = '编辑记录';
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+// ── DELETE CARD ──
+function deleteCard(card) {
+  if(!confirm('确认删除这条记录？')) return;
+  const id = card.dataset.id;
+  const role = card.dataset.role;
+
+  // remove from source container
+  const src = document.getElementById('entries-' + role);
+  const srcCard = src.querySelector(`[data-id="${id}"]`);
+  if(srcCard) srcCard.remove();
+
+  // remove media
+  const idx = loadMediaIndex();
+  delete idx[id];
+  saveMediaIndex(idx);
+
+  saveEntries();
+  updateStats();
+  updateHomeCount();
+
+  // refresh role view if open
+  if(currentRole === role) renderRoleEntries(role);
+  showSaveToast();
+}
+
 function submitEntry() {
   const date = document.getElementById('f-date').value;
   const role = document.getElementById('f-role').value;
@@ -1149,20 +1234,50 @@ function submitEntry() {
   if(!title||!text) { alert('请填写标题和内容'); return; }
   const fmtDate = date.replace(/-/g,' · ');
   const chipHtml = chips ? chips.split(',').map(c=>`<span class="chip">${c.trim()}</span>`).join('') : '';
-  const card = document.createElement('div');
-  card.className = 'card';
-  card.dataset.role = role;
-  card.dataset.date = date;
-  card.dataset.id = Date.now() + '_' + Math.random().toString(36).slice(2);
-  card.innerHTML = buildCardInner(role, fmtDate, tag, title, text, chipHtml);
-  attachMediaUploadHandlers(card);
-  const container = document.getElementById(`entries-${role}`);
-  container.prepend(card);
+
+  const editId = document.getElementById('modal-overlay').dataset.editId;
+
+  if(editId) {
+    // ── EDIT MODE: update existing card ──
+    const src = document.getElementById('entries-' + role);
+    let srcCard = src.querySelector(`[data-id="${editId}"]`);
+    if(!srcCard) {
+      // card might be in a different role container if role changed
+      ['player','coach','ref'].forEach(r => {
+        const c = document.getElementById('entries-'+r).querySelector(`[data-id="${editId}"]`);
+        if(c) { srcCard = c; c.remove(); }
+      });
+      srcCard = null; // will rebuild below
+    }
+    // Remove old and rebuild
+    document.querySelectorAll(`[data-id="${editId}"]`).forEach(c => c.remove());
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.role = role;
+    card.dataset.date = date;
+    card.dataset.id = editId;
+    card.innerHTML = buildCardInner(role, fmtDate, tag, title, text, chipHtml);
+    attachMediaUploadHandlers(card);
+    restoreMediaForCard(card);
+    document.getElementById('entries-' + role).prepend(card);
+    delete document.getElementById('modal-overlay').dataset.editId;
+  } else {
+    // ── NEW ENTRY ──
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.role = role;
+    card.dataset.date = date;
+    card.dataset.id = Date.now() + '_' + Math.random().toString(36).slice(2);
+    card.innerHTML = buildCardInner(role, fmtDate, tag, title, text, chipHtml);
+    attachMediaUploadHandlers(card);
+    document.getElementById('entries-' + role).prepend(card);
+  }
+
   saveEntries();
   closeModal();
   updateStats();
   updateHomeCount();
-  if(currentRole === role) renderRoleEntries(role);
+  if(currentRole === role || currentRole) renderRoleEntries(currentRole || role);
   showSaveToast();
   ['f-tag','f-title','f-text','f-chips'].forEach(id => document.getElementById(id).value = '');
 }

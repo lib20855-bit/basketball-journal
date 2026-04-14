@@ -1238,19 +1238,12 @@ function submitEntry() {
   const editId = document.getElementById('modal-overlay').dataset.editId;
 
   if(editId) {
-    // ── EDIT MODE: update existing card ──
-    const src = document.getElementById('entries-' + role);
-    let srcCard = src.querySelector(`[data-id="${editId}"]`);
-    if(!srcCard) {
-      // card might be in a different role container if role changed
-      ['player','coach','ref'].forEach(r => {
-        const c = document.getElementById('entries-'+r).querySelector(`[data-id="${editId}"]`);
-        if(c) { srcCard = c; c.remove(); }
-      });
-      srcCard = null; // will rebuild below
-    }
-    // Remove old and rebuild
-    document.querySelectorAll(`[data-id="${editId}"]`).forEach(c => c.remove());
+    // ── EDIT MODE: remove from ALL containers (source + display clones) ──
+    ['player','coach','ref'].forEach(r => {
+      document.getElementById('entries-'+r).querySelectorAll(`[data-id="${editId}"]`).forEach(c => c.remove());
+    });
+    document.getElementById('role-entries-display').querySelectorAll(`[data-id="${editId}"]`).forEach(c => c.remove());
+    // Rebuild and insert into source container only
     const card = document.createElement('div');
     card.className = 'card';
     card.dataset.role = role;

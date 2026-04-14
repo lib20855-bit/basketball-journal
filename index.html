@@ -848,16 +848,21 @@ function loadEntries() {
   try { return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch(e) { return []; }
 }
 function saveEntries() {
-  const cards = Array.from(document.querySelectorAll('.card[data-role]'));
-  const entries = cards.map(card => ({
-    id: card.dataset.id || '',
-    role: card.dataset.role,
-    date: card.dataset.date,
-    title: card.querySelector('.card-title')?.textContent || '',
-    text: card.querySelector('.card-text')?.textContent || '',
-    tag: card.querySelector('.card-tag')?.textContent || '',
-    chips: Array.from(card.querySelectorAll('.chip')).map(c=>c.textContent),
-  }));
+  // save from source containers ONLY, never from display area
+  const entries = [];
+  ['player','coach','ref'].forEach(role => {
+    document.getElementById('entries-'+role).querySelectorAll('.card[data-role]').forEach(card => {
+      entries.push({
+        id:    card.dataset.id || '',
+        role:  card.dataset.role,
+        date:  card.dataset.date || '',
+        title: card.querySelector('.card-title')?.textContent || '',
+        text:  card.querySelector('.card-text')?.textContent || '',
+        tag:   card.querySelector('.card-tag')?.textContent || '',
+        chips: Array.from(card.querySelectorAll('.chip')).map(c => c.textContent),
+      });
+    });
+  });
   try { localStorage.setItem(STORE_KEY, JSON.stringify(entries)); } catch(e) {}
 }
 function loadMediaIndex() {
@@ -986,7 +991,7 @@ function updateStats() {
 
 // ── INIT ──
 renderSavedEntries();
-if(!localStorage.getItem('bball_entries_v1')) saveEntries();
+if(!localStorage.getItem(STORE_KEY)) saveEntries();
 updateStats();
 updateHomeCount();
 
@@ -1411,4 +1416,3 @@ function closeLightbox() {
 </script>
 </body>
 </html>
-

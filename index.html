@@ -974,14 +974,10 @@ function persistMedia(card, type, name, data) {
 
 // ── STATS ──
 function updateStats() {
-  const cards = document.querySelectorAll('.card[data-role]');
-  let p=0,c=0,r=0;
-  cards.forEach(card => {
-    const role = card.dataset.role;
-    if(role==='player') p++;
-    else if(role==='coach') c++;
-    else if(role==='ref') r++;
-  });
+  // only count from source containers, never from display area
+  const p = document.getElementById('entries-player').querySelectorAll('.card[data-role]').length;
+  const c = document.getElementById('entries-coach').querySelectorAll('.card[data-role]').length;
+  const r = document.getElementById('entries-ref').querySelectorAll('.card[data-role]').length;
   document.getElementById('cnt-player').textContent = p;
   document.getElementById('cnt-coach').textContent = c;
   document.getElementById('cnt-ref').textContent = r;
@@ -1025,31 +1021,43 @@ function exitRole() {
 }
 
 function renderRoleEntries(role) {
-  const src = document.getElementById('entries-' + role);
+  // sync store from source containers (not display)
+  syncStoreFromDOM();
+
   const display = document.getElementById('role-entries-display');
   const empty = document.getElementById('role-empty');
   const tlDisplay = document.getElementById('role-timeline-display');
 
   display.style.display = 'flex';
   tlDisplay.style.display = 'none';
-
   display.innerHTML = '';
-  const cards = Array.from(src.querySelectorAll('.card[data-role]'));
-  if(cards.length === 0) {
+
+  // get entries for this role from store, sorted newest first
+  const entries = Object.values(entryStore)
+    .filter(e => e.role === role)
+    .sort((a,b) => (b.date||'').localeCompare(a.date||''));
+
+  if(entries.length === 0) {
     empty.style.display = 'block';
     display.style.display = 'none';
-  } else {
-    empty.style.display = 'none';
-    cards.forEach(c => display.appendChild(c.cloneNode(true)));
-    display.querySelectorAll('input[type=file]').forEach(input => {
-      const type = input.accept.includes('video') ? 'video' : input.accept.includes('image') ? 'image' : 'audio';
-      input.onchange = function() { handleMedia(this, type, this.closest('.card')); };
-    });
-    display.querySelectorAll('.card').forEach(card => {
-      const id = card.dataset.id;
-      if(id) restoreMediaForCard(card);
-    });
+    return;
   }
+  empty.style.display = 'none';
+
+  entries.forEach(e => {
+    const rc = roleColors[e.role];
+    const fmtDate = (e.date||'').replace(/-/g,' · ');
+    const chipHtml = (e.chips||[]).map(c=>`<span class="chip">${c}</span>`).join('');
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.role = e.role;
+    card.dataset.date = e.date || '';
+    card.dataset.id = e.id;
+    card.innerHTML = buildCardInner(e.role, fmtDate, e.tag, e.title, e.text, chipHtml);
+    attachMediaUploadHandlers(card);
+    restoreMediaForCard(card);
+    display.appendChild(card);
+  });
 }
 
 function switchTab(tab) {
@@ -1403,3 +1411,4 @@ function closeLightbox() {
 </script>
 </body>
 </html>
+

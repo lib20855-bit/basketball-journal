@@ -684,7 +684,7 @@ body::before {
 <div class="hero">
   <div class="hero-eyebrow">Keep going bro 🏀</div>
   <div class="hero-title">Lee 的<span>篮球</span>空间</div>
-  <div class="hero-desc">球员 · 教练 · 裁判 &nbsp;|&nbsp; 环哲队 &nbsp;|&nbsp; 同一片球场，三种目光</div>
+  <div class="hero-desc">球员 · 教练 · 裁判 &nbsp;|&nbsp; 同一片球场，三种目光</div>
   <div class="role-pills">
     <button class="rpill rp-g role-enter-btn" onclick="enterRole('player')">球员 →</button>
     <button class="rpill rp-p role-enter-btn" onclick="enterRole('coach')">教练 →</button>
@@ -742,7 +742,7 @@ body::before {
         </div>
         <div class="rcard-right">
           <div class="rcard-title" style="color:var(--green)">练球日志</div>
-          <div class="rcard-desc">训练记录 · 技术复盘 · 感受</div>
+          <div class="rcard-desc">训练记录 · 技术复盘 · 健身 · 感受</div>
           <div class="rcard-count" id="home-cnt-player">0 条记录</div>
         </div>
         <div class="rcard-arrow">›</div>
@@ -783,7 +783,7 @@ body::before {
 
 <!-- FOOTER -->
 <div class="footer">
-  <p>Basketball Journal · Lee · 环哲队</p>
+  <p>Basketball Journal · Lee</p>
 </div>
 
 <!-- ADD MODAL -->
@@ -797,7 +797,7 @@ body::before {
       </div>
       <div class="form-group">
         <label class="form-label">角色</label>
-        <select class="form-select" id="f-role">
+        <select class="form-select" id="f-role" onchange="updateTagHints(this.value)">
           <option value="player">球员</option>
           <option value="coach">教练</option>
           <option value="ref">裁判</option>
@@ -806,7 +806,8 @@ body::before {
     </div>
     <div class="form-group">
       <label class="form-label">标签</label>
-      <input type="text" class="form-input" id="f-tag" placeholder="如：投篮训练、战术设计……">
+      <input type="text" class="form-input" id="f-tag" placeholder="如：投篮训练、健身、战术设计……">
+      <div id="f-tag-hints" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
     </div>
     <div class="form-group">
       <label class="form-label">标题</label>
@@ -1180,7 +1181,27 @@ function openModal() {
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('f-date').value = today;
   if(currentRole) document.getElementById('f-role').value = currentRole;
+  updateTagHints(currentRole || 'player');
   document.getElementById('modal-overlay').classList.add('open');
+}
+
+const TAG_HINTS = {
+  player: ['投篮训练','运球训练','对抗训练','体能训练','健身','拉伸恢复','实战'],
+  coach:  ['战术设计','训练设计','球员发展','赛后复盘','技术指导'],
+  ref:    ['规则思考','执裁总结','争议判罚','赛前准备'],
+};
+
+function updateTagHints(role) {
+  const hints = TAG_HINTS[role] || [];
+  const container = document.getElementById('f-tag-hints');
+  if(!container) return;
+  container.innerHTML = hints.map(h =>
+    `<button type="button" onclick="setTag('${h}')" style="font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid var(--border2);background:var(--surface2);color:var(--text3);cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent">${h}</button>`
+  ).join('');
+}
+
+function setTag(val) {
+  document.getElementById('f-tag').value = val;
 }
 function closeModal() {
   document.getElementById('modal-overlay').classList.remove('open');

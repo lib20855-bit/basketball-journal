@@ -684,7 +684,7 @@ body::before {
 <div class="hero">
   <div class="hero-eyebrow">Keep going bro 🏀</div>
   <div class="hero-title">Lee 的<span>篮球</span>空间</div>
-  <div class="hero-desc">球员 · 教练 · 裁判 &nbsp;|&nbsp; 同一片球场，三种目光</div>
+  <div class="hero-desc">球员 · 教练 · 裁判 &nbsp;|&nbsp; 环哲队 &nbsp;|&nbsp; 同一片球场，三种目光</div>
   <div class="role-pills">
     <button class="rpill rp-g role-enter-btn" onclick="enterRole('player')">球员 →</button>
     <button class="rpill rp-p role-enter-btn" onclick="enterRole('coach')">教练 →</button>
@@ -719,6 +719,10 @@ body::before {
   <div class="vnav-sep"></div>
   <button class="vnav-btn active" id="tab-entries" onclick="switchTab('entries')">记录</button>
   <button class="vnav-btn" id="tab-timeline" onclick="switchTab('timeline')">时间线</button>
+  <!-- 裁判专属子模块 tabs，仅 ref 角色显示 -->
+  <button class="vnav-btn" id="tab-ref-system" onclick="switchTab('ref-system')" style="display:none">执裁精进</button>
+  <!-- 球员专属子模块 tab -->
+  <button class="vnav-btn" id="tab-fitness" onclick="switchTab('fitness')" style="display:none">健身</button>
   <div style="width:8px"></div>
 </div>
 <button class="fab" id="fab-btn" onclick="openModal()" style="display:none">
@@ -764,7 +768,7 @@ body::before {
         </div>
         <div class="rcard-right">
           <div class="rcard-title" style="color:var(--orange)">裁判笔记</div>
-          <div class="rcard-desc">规则思考 · 执裁总结 · 争议判罚</div>
+          <div class="rcard-desc">执裁日志 · 规则图谱 · 裁判法 · 情境卡片</div>
           <div class="rcard-count" id="home-cnt-ref">0 条记录</div>
         </div>
         <div class="rcard-arrow">›</div>
@@ -777,6 +781,10 @@ body::before {
     <div class="entries" id="role-entries-display"></div>
     <div id="role-timeline-display" style="display:none"></div>
     <div id="role-empty" style="display:none;padding:3rem 0;text-align:center;color:var(--text3);font-size:13px">还没有记录，点击右上角新建第一条</div>
+    <!-- 执裁精进系统面板 -->
+    <div id="ref-system-panel" style="display:none"></div>
+    <!-- 健身子模块面板 -->
+    <div id="fitness-panel" style="display:none"></div>
   </div>
 
 </div>
@@ -797,7 +805,7 @@ body::before {
       </div>
       <div class="form-group">
         <label class="form-label">角色</label>
-        <select class="form-select" id="f-role" onchange="updateTagHints(this.value)">
+        <select class="form-select" id="f-role">
           <option value="player">球员</option>
           <option value="coach">教练</option>
           <option value="ref">裁判</option>
@@ -806,8 +814,7 @@ body::before {
     </div>
     <div class="form-group">
       <label class="form-label">标签</label>
-      <input type="text" class="form-input" id="f-tag" placeholder="如：投篮训练、健身、战术设计……">
-      <div id="f-tag-hints" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
+      <input type="text" class="form-input" id="f-tag" placeholder="如：投篮训练、战术设计……">
     </div>
     <div class="form-group">
       <label class="form-label">标题</label>
@@ -1013,6 +1020,16 @@ function enterRole(role) {
   document.getElementById('tab-entries').classList.add('active');
   document.getElementById('tab-timeline').classList.remove('active');
 
+  // 裁判专属tab显示/隐藏
+  const refTab = document.getElementById('tab-ref-system');
+  if (refTab) refTab.style.display = role === 'ref' ? '' : 'none';
+  if (role === 'ref') refTab.classList.remove('active');
+
+  // 球员专属tab显示/隐藏
+  const fitTab = document.getElementById('tab-fitness');
+  if (fitTab) fitTab.style.display = role === 'player' ? '' : 'none';
+  if (role === 'player') fitTab.classList.remove('active');
+
   renderRoleEntries(role);
   window.scrollTo(0, 0);
 }
@@ -1023,6 +1040,10 @@ function exitRole() {
   document.getElementById('role-view').style.display = 'none';
   document.getElementById('role-nav').style.display = 'none';
   document.getElementById('fab-btn').style.display = 'none';
+  const refTab = document.getElementById('tab-ref-system');
+  if (refTab) { refTab.style.display = 'none'; refTab.classList.remove('active'); }
+  const fitTab = document.getElementById('tab-fitness');
+  if (fitTab) { fitTab.style.display = 'none'; fitTab.classList.remove('active'); }
   updateHomeCount();
 }
 
@@ -1069,11 +1090,48 @@ function renderRoleEntries(role) {
 function switchTab(tab) {
   document.getElementById('tab-entries').classList.toggle('active', tab === 'entries');
   document.getElementById('tab-timeline').classList.toggle('active', tab === 'timeline');
+  const refTab = document.getElementById('tab-ref-system');
+  if (refTab) refTab.classList.toggle('active', tab === 'ref-system');
+  const fitTab = document.getElementById('tab-fitness');
+  if (fitTab) fitTab.classList.toggle('active', tab === 'fitness');
+
   const display = document.getElementById('role-entries-display');
   const tlDisplay = document.getElementById('role-timeline-display');
   const empty = document.getElementById('role-empty');
+  const refPanel = document.getElementById('ref-system-panel');
+  const fitPanel = document.getElementById('fitness-panel');
+  const fab = document.getElementById('fab-btn');
 
-  if(tab === 'timeline') {
+  // 执裁精进面板
+  if (tab === 'ref-system') {
+    display.style.display = 'none';
+    tlDisplay.style.display = 'none';
+    empty.style.display = 'none';
+    refPanel.style.display = 'block';
+    fitPanel.style.display = 'none';
+    fab.style.display = 'none';
+    if (!refPanel.dataset.loaded) { buildRefSystem(); refPanel.dataset.loaded = '1'; }
+    return;
+  }
+
+  // 健身面板
+  if (tab === 'fitness') {
+    display.style.display = 'none';
+    tlDisplay.style.display = 'none';
+    empty.style.display = 'none';
+    refPanel.style.display = 'none';
+    fitPanel.style.display = 'block';
+    fab.style.display = 'none';
+    if (!fitPanel.dataset.loaded) { buildFitnessSystem(); fitPanel.dataset.loaded = '1'; }
+    return;
+  }
+
+  // 恢复fab
+  fab.style.display = 'flex';
+  refPanel.style.display = 'none';
+  fitPanel.style.display = 'none';
+
+  if (tab === 'timeline') {
     display.style.display = 'none';
     tlDisplay.style.display = 'block';
     empty.style.display = 'none';
@@ -1181,27 +1239,7 @@ function openModal() {
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('f-date').value = today;
   if(currentRole) document.getElementById('f-role').value = currentRole;
-  updateTagHints(currentRole || 'player');
   document.getElementById('modal-overlay').classList.add('open');
-}
-
-const TAG_HINTS = {
-  player: ['投篮训练','运球训练','对抗训练','体能训练','健身','拉伸恢复','实战'],
-  coach:  ['战术设计','训练设计','球员发展','赛后复盘','技术指导'],
-  ref:    ['规则思考','执裁总结','争议判罚','赛前准备'],
-};
-
-function updateTagHints(role) {
-  const hints = TAG_HINTS[role] || [];
-  const container = document.getElementById('f-tag-hints');
-  if(!container) return;
-  container.innerHTML = hints.map(h =>
-    `<button type="button" onclick="setTag('${h}')" style="font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid var(--border2);background:var(--surface2);color:var(--text3);cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent">${h}</button>`
-  ).join('');
-}
-
-function setTag(val) {
-  document.getElementById('f-tag').value = val;
 }
 function closeModal() {
   document.getElementById('modal-overlay').classList.remove('open');
@@ -1433,6 +1471,1382 @@ function openLightbox(type, url) {
 function closeLightbox() {
   document.getElementById('lightbox').classList.remove('open');
   document.getElementById('lightbox-content').innerHTML = '';
+}
+
+// ══════════════════════════════════════════════════
+// 执裁精进系统 · 完整注入
+// 数据层与大系统 bball_entries_v1 (role=ref) 双向同步
+// ══════════════════════════════════════════════════
+
+// ── 情境卡片数据 ──
+const REF_CARDS = [
+  { id:1, cat:'rule', type:'规则判断', q:'A1在8秒周期即将结束前从后场投篮离手，球越过中线后进入球篮。是否判8秒违例？', a:'不判违例，进球有效，登记3分。投篮离手瞬间球队控制球结束，8秒计时同时终止。球在空中飞行不构成控制球。' },
+  { id:2, cat:'rule', type:'规则判断', q:'24秒信号响时，A1投篮的球触及篮圈后弹出，交替拥有箭头指A队，如何处理？', a:'不判违例（球触圈）。A队在就近地点掷球入界。进攻计时钟：剩余≥14秒不重置；剩余≤13秒重置为14秒。' },
+  { id:3, cat:'rule', type:'规则判断', q:'24秒信号响时球在空中未触圈，随即双方争球，交替拥有箭头指A队。如何处理？', a:'判进攻时间违例（球未触圈）。不适用交替拥有——这是投篮时间违例，由B队在就近地点掷球入界，进攻计时钟重置24秒。' },
+  { id:4, cat:'rule', type:'规则判断', q:'A1在前场三分区掷球入界，球被站在三分线内的A2触及后进入球篮。计几分？', a:'计2分。得分值取决于球出手时的性质（掷球入界，不是投篮动作），不论A2在哪个区域触及。' },
+  { id:5, cat:'rule', type:'规则判断', q:'A1投篮，球到达最高点时被B2触及，球未进。这是干涉得分违例吗？', a:'不是违例，合法。OBR2024规定：球只有在到达最高点并开始下落后被触及才是干涉得分违例。在最高点触及属于合法范围。' },
+  { id:6, cat:'rule', type:'规则判断·OBR2024', q:'A1快攻推进，与篮筐之间无防守队员。B1从侧面跑来与A1接触，A1未开始投篮动作。判什么犯规？', a:'违体犯规（OBR2024第37.1.1条情形④）。进攻方向对方篮筐推进、与篮筐之间无防守队员时，防守方从侧面或背后造成的接触直接构成违体犯规。2次不占位罚球+前场球权。' },
+  { id:7, cat:'rule', type:'规则判断·OBR2024', q:'B1防守持球A1，建立合法防守位置后侧向滑步移动期间一脚短暂离地，随后A1与B1躯干接触。判什么犯规？', a:'带球撞人（A1负责）。OBR2024第33.4条：防守方建立合法位置后允许侧向或后退移动，一脚可短暂离地，只要移动方向不是朝向持球队员。接触在躯干，B1视为先到达。' },
+  { id:8, cat:'rule', type:'规则判断·OBR2024', q:'B1防守无球的A1，在A1移动路径上快速移动建立防守位置，距离不足一步时双方接触。谁的责任？', a:'B1的责任（阻挡犯规）。OBR2024第33.5条：防守无球队员时，时间和距离原则适用——防守方至少留出对手1个正常步骤的空间来停止或改变方向。' },
+  { id:9, cat:'rule', type:'规则判断·OBR2024', q:'A队犯规，B队获前场掷球入界，此时进攻计时钟显示18秒。应重置为几秒？', a:'不重置，维持18秒继续计时。OBR2024第29.2.2条：球权不变、前场掷球入界时，剩余≥14秒不重置。只有剩余≤13秒才重置为14秒；球权转换到前场时固定重置14秒。' },
+  { id:10, cat:'rule', type:'规则判断·OBR2024', q:'A1接传球时双脚同时落地，随即右脚迈出（第一步），左脚再迈出（第二步），起跳出手投篮，双脚在球出手后落地。是否走步？', a:'合法，不走步。双脚同时落地接球→任一脚可作中枢脚。右脚迈出=第一步，左脚迈出=第二步，起跳出手→球在脚落地前已离手，符合OBR2024第25条两步规则。' },
+  { id:11, cat:'tech', type:'裁判法', q:'三人制比赛中，球从强侧移至弱侧。作为前导，你应该在什么时候发动轮转？', a:'球进入矩形2区时移至发动轮转点待机。球移至弱侧时先停留1秒（"一次呼吸"），分析弱侧是否会立即发生投篮或突破。若不会→立即发动轮转，急速走动穿过禁区。' },
+  { id:12, cat:'tech', type:'裁判法', q:'前导正在轮转过程中，弱侧突然发生持球突破。前导应该怎么做？', a:'立即停止轮转，返回初始位置。中央停留在中央位置继续覆盖突破。追踪返回初始位置。注意：如前导已越过篮板或禁区中点，则必须完成轮转（不可返回点）。' },
+  { id:13, cat:'tech', type:'裁判法', q:'快攻发生时，中央最重要的目标是什么？', a:'全速到达前场罚球线延长线，覆盖可能的干扰/干涉得分违例，并处于执裁状态覆盖弱侧50%的比赛情况。前导和中央全速奔跑，前导直行至端线建立位置。' },
+  { id:14, cat:'tech', type:'裁判法', q:'你是追踪，对方刚中篮，准备攻守转换。你应该在什么时机进入球场？', a:'等到球从界外掷球入界、传给场上队友后再进入，进场前与球保持最小3米距离。始终在比赛后面1-2步（禁止溜溜跑）。成为最后到前场的人，面对球篮45度角落位。' },
+  { id:15, cat:'tech', type:'裁判法', q:'罚球时三人的职责分工是什么？', a:'前导：执行裁判，管理全部罚球，负责记录台一侧限制区占位点队员。中央：手势指示罚球次数，观察罚球队员违例，负责记录台对侧限制区。追踪：负责罚球线后及三分线后其他队员。' },
+  { id:16, cat:'combo', type:'综合情境', q:'比赛最后0.8秒，B1投篮，计时钟信号响起，球还在空中。你作为追踪站在记录台一侧，如何处理？', a:'追踪（记录台一侧）是计时钟主责裁判员，判断球是否在信号响之前已离手。覆盖投篮的裁判感知离手时机作辅助。有分歧时主裁做最终决定。若球在信号前已离手：等待结果；若未离手：时间到，比赛结束。' },
+  { id:17, cat:'combo', type:'综合情境', q:'你宣判前场端线外侧犯规，球仍在前场，判罚球。你作为前导，报告完成后移到哪里？', a:'前导报告完成后移向对侧成为新追踪。原追踪成为新前导，原中央成为新中央。报告后立即想好下一个位置，快速移动。' },
+  { id:18, cat:'combo', type:'综合情境', q:'你是中央，弱侧出现持球突破，防守队员与进攻队员发生接触。你是否有权判罚？', a:'有权判罚，弱侧到篮下是中央主责区。要主动判罚弱侧非法接触——不要被动。采用"中央交叉步"保持三角视角。如果中央被动不判，迫使追踪越区，降低整体执裁质量。' },
+  { id:19, cat:'combo', type:'综合情境', q:'A1运球至靠近边线，你是追踪，你应该怎么调整？', a:'向球场内移动1-2步保持"开角"。当A1在你正前方时，预测A1接下来移动方向，向反方向跨步（"追踪交叉步"），确保永远不在队员正后方直线上。' },
+  { id:20, cat:'combo', type:'综合情境', q:'中央位置的工作区和建立位置点在哪里？', a:'工作区：罚球圈顶部到"罚球线下方半圆底部"之间（即罚球线延长几步上提和下移的范围），通常在场地内工作。建立位置点（Set Up Point）：罚球线延长线处，这是攻守转换后中央的第一落位目标。' }
+];
+
+// ── 卡片状态存储 ──
+const REF_CARD_KEY = 'ref_card_status_v1';
+let refCardStatus = {};
+let refCardIndex = 0;
+let refCardFilter = 'all';
+
+function loadRefCardStatus() {
+  try { refCardStatus = JSON.parse(localStorage.getItem(REF_CARD_KEY) || '{}'); } catch(e) { refCardStatus = {}; }
+}
+function saveRefCardStatus() {
+  try { localStorage.setItem(REF_CARD_KEY, JSON.stringify(refCardStatus)); } catch(e) {}
+}
+
+// ── 执裁日志与大系统同步 ──
+// 大系统存储: bball_entries_v1, role=ref
+// 执裁日志从大系统 ref 记录中读取，写入也直接写入大系统
+
+function getRefLogsFromStore() {
+  // 从DOM中读取 entries-ref 容器中的卡片（大系统已渲染的数据）
+  const container = document.getElementById('entries-ref');
+  if (!container) return [];
+  const cards = Array.from(container.querySelectorAll('.card[data-role="ref"]'));
+  return cards.map(c => ({
+    id: c.dataset.id,
+    date: c.dataset.date || '',
+    title: c.querySelector('.card-title')?.textContent || '',
+    text: c.querySelector('.card-text')?.textContent || '',
+    tag: c.querySelector('.card-tag')?.textContent || '',
+    chips: Array.from(c.querySelectorAll('.chip')).map(ch => ch.textContent),
+  })).reverse(); // 最新在前
+}
+
+function saveRefLogToStore(date, title, text, tag, chips, rating) {
+  // 构建一条新记录写入大系统（role=ref）
+  const rc = roleColors['ref'];
+  const fmtDate = date.replace(/-/g,' · ');
+  const chipArr = chips ? chips.split(',').map(s=>s.trim()).filter(Boolean) : [];
+  if (rating) chipArr.unshift('评分' + ['','😞','😐','🙂','😊','🔥'][rating] || '');
+  const chipHtml = chipArr.map(c=>`<span class="chip">${c}</span>`).join('');
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.dataset.role = 'ref';
+  card.dataset.date = date;
+  card.dataset.id = Date.now() + '_' + Math.random().toString(36).slice(2);
+  card.innerHTML = buildCardInner('ref', fmtDate, tag, title, text, chipHtml);
+  attachMediaUploadHandlers(card);
+  document.getElementById('entries-ref').prepend(card);
+  saveEntries();
+  updateStats();
+  updateHomeCount();
+  // 刷新执裁精进系统的日志显示
+  renderRefLogs();
+  showRefToast('✅ 记录已保存到大系统');
+}
+
+// ── 主构建函数 ──
+function buildRefSystem() {
+  loadRefCardStatus();
+  const panel = document.getElementById('ref-system-panel');
+  panel.innerHTML = buildRefSystemHTML();
+  // 绑定事件
+  bindRefSystemEvents();
+  renderRefLogs();
+  loadRefCard(0);
+  renderRefCardList();
+  updateRefCardStats();
+}
+
+function buildRefSystemHTML() {
+  return `
+<style>
+/* 执裁精进系统内嵌样式 */
+.rs-wrap { padding: 0 0 80px; }
+.rs-tabs { display:flex; gap:6px; padding:12px 16px 0; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid var(--border); background:var(--surface); position:sticky; top:53px; z-index:40; }
+.rs-tabs::-webkit-scrollbar { display:none; }
+.rs-tab { flex-shrink:0; padding:6px 14px; border-radius:20px; font-size:12px; font-weight:500; border:1px solid var(--border); cursor:pointer; background:transparent; color:var(--text3); font-family:inherit; transition:all 0.15s; margin-bottom:10px; }
+.rs-tab.active { background:var(--orange); color:#fff; border-color:var(--orange); }
+.rs-section { display:none; padding:16px; }
+.rs-section.active { display:block; }
+
+/* 今日专项 */
+.rs-today { background:linear-gradient(135deg,#fff3e8,#fff); border:1px solid #f5c89a; border-radius:12px; padding:16px; margin-bottom:14px; }
+.rs-today-label { font-size:10px; font-weight:700; color:var(--orange); letter-spacing:2px; margin-bottom:6px; }
+.rs-today-text { font-size:14px; font-weight:500; color:var(--text); line-height:1.5; }
+
+/* 规则卡片 */
+.rs-rule-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:10px; }
+.rs-rule-hd { padding:13px 15px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; }
+.rs-rule-hd:active { background:var(--surface2); }
+.rs-rule-meta { font-size:10px; color:var(--text3); margin-bottom:3px; }
+.rs-rule-name { font-size:13px; font-weight:500; color:var(--text); }
+.rs-rule-arrow { color:var(--text3); font-size:18px; transition:transform 0.25s; }
+.rs-rule-arrow.open { transform:rotate(90deg); }
+.rs-rule-body { display:none; padding:0 15px 14px; border-top:1px solid var(--border); }
+.rs-rule-body.open { display:block; }
+.rs-sec-title { font-size:10px; font-weight:700; letter-spacing:1.5px; color:var(--orange); margin:12px 0 5px; text-transform:uppercase; }
+.rs-key { background:#fff3e8; border-left:3px solid var(--orange); padding:8px 11px; border-radius:0 6px 6px 0; margin:6px 0; font-size:12px; color:var(--text); font-weight:500; line-height:1.6; }
+.rs-warn { background:#fef2f0; border-left:3px solid #e74c3c; padding:8px 11px; border-radius:0 6px 6px 0; margin:6px 0; font-size:12px; color:#c0392b; font-weight:400; line-height:1.6; }
+.rs-text { font-size:12px; color:var(--text2); line-height:1.7; font-weight:300; }
+.rs-example { background:var(--surface2); border-radius:7px; padding:9px 11px; margin:6px 0; }
+.rs-example-title { font-size:10px; font-weight:700; color:var(--orange); margin-bottom:3px; }
+.rs-pos-block { border:1px solid var(--border); border-radius:8px; overflow:hidden; margin:8px 0; }
+.rs-pos-row { display:flex; align-items:flex-start; gap:10px; padding:9px 11px; border-bottom:1px solid var(--border); }
+.rs-pos-row:last-child { border-bottom:none; }
+.rs-pos-who { font-size:10px; font-weight:700; min-width:28px; padding:2px 5px; border-radius:4px; text-align:center; flex-shrink:0; margin-top:1px; }
+.rs-pos-desc { font-size:12px; color:var(--text); line-height:1.6; }
+.rs-pos-note { font-size:11px; color:var(--text3); margin-top:3px; font-weight:300; }
+
+/* 裁判法 */
+.rs-tech-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:10px; }
+.rs-tech-hd { padding:13px 15px; cursor:pointer; display:flex; align-items:center; gap:10px; }
+.rs-tech-hd:active { background:var(--surface2); }
+.rs-tech-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+.rs-tech-info { flex:1; }
+.rs-tech-name { font-size:13px; font-weight:500; color:var(--text); }
+.rs-tech-sub { font-size:11px; color:var(--text3); margin-top:1px; }
+.rs-tech-arrow { color:var(--text3); font-size:18px; transition:transform 0.25s; }
+.rs-tech-arrow.open { transform:rotate(90deg); }
+.rs-tech-body { display:none; padding:0 15px 14px; border-top:1px solid var(--border); }
+.rs-tech-body.open { display:block; }
+.rs-check-item { display:flex; align-items:flex-start; gap:7px; padding:6px 0; border-bottom:1px solid var(--border); font-size:12px; color:var(--text2); line-height:1.5; font-weight:300; }
+.rs-check-item:last-child { border-bottom:none; }
+.rs-check-icon { color:var(--orange); font-size:12px; flex-shrink:0; margin-top:2px; }
+.rs-rule-tabs { display:flex; gap:6px; padding:0 0 12px; overflow-x:auto; scrollbar-width:none; }
+.rs-rule-tabs::-webkit-scrollbar { display:none; }
+.rs-rtab { flex-shrink:0; padding:5px 12px; border-radius:20px; font-size:11px; font-weight:700; border:1px solid var(--border); cursor:pointer; background:transparent; color:var(--text3); font-family:inherit; }
+.rs-rtab.active { background:#fff3e8; border-color:var(--orange); color:var(--orange-text); }
+
+/* 卡片系统 */
+.rs-card-stats { display:flex; gap:8px; margin-bottom:12px; }
+.rs-stat-box { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:10px; text-align:center; }
+.rs-stat-num { font-family:'Bebas Neue',sans-serif; font-size:26px; line-height:1; }
+.rs-stat-label { font-size:10px; color:var(--text3); margin-top:2px; }
+.rs-flash { min-height:180px; background:var(--surface); border:1px solid var(--border); border-radius:12px; cursor:pointer; perspective:1000px; margin-bottom:10px; }
+.rs-flash-inner { width:100%; height:100%; transition:transform 0.45s; transform-style:preserve-3d; position:relative; }
+.rs-flash-inner.flipped { transform:rotateY(180deg); }
+.rs-flash-front, .rs-flash-back { position:absolute; width:100%; min-height:180px; backface-visibility:hidden; padding:18px; display:flex; flex-direction:column; }
+.rs-flash-back { transform:rotateY(180deg); background:#fff3e8; }
+.rs-flash-type { font-size:10px; font-weight:700; letter-spacing:2px; color:var(--orange); margin-bottom:10px; }
+.rs-flash-q { font-size:14px; font-weight:500; color:var(--text); line-height:1.5; flex:1; }
+.rs-flash-hint { font-size:11px; color:var(--text3); margin-top:10px; }
+.rs-flash-a-label { font-size:10px; font-weight:700; color:#00913f; letter-spacing:2px; margin-bottom:8px; }
+.rs-flash-a { font-size:13px; color:var(--text); line-height:1.7; font-weight:400; flex:1; }
+.rs-flash-actions { display:flex; gap:8px; margin-bottom:12px; }
+.rs-flash-btn { flex:1; padding:10px; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer; border:none; font-family:inherit; }
+.rs-btn-wrong { background:#fde8d8; color:var(--orange); }
+.rs-btn-next { background:var(--orange); color:#fff; flex:2; }
+.rs-btn-right { background:#d0f0e0; color:var(--green-text); }
+.rs-progress { height:3px; background:var(--border); border-radius:2px; overflow:hidden; margin-bottom:16px; }
+.rs-progress-fill { height:100%; background:var(--orange); border-radius:2px; transition:width 0.3s; }
+.rs-card-filter { display:flex; gap:6px; margin-bottom:12px; overflow-x:auto; scrollbar-width:none; }
+.rs-card-filter::-webkit-scrollbar { display:none; }
+.rs-cfbtn { flex-shrink:0; padding:5px 11px; border-radius:20px; font-size:11px; font-weight:700; border:1px solid var(--border); cursor:pointer; background:transparent; color:var(--text3); font-family:inherit; }
+.rs-cfbtn.active { background:#fff3e8; border-color:var(--orange); color:var(--orange-text); }
+.rs-card-list-item { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-bottom:8px; cursor:pointer; display:flex; align-items:center; gap:10px; }
+.rs-card-list-item:active { background:var(--surface2); }
+
+/* 日志 */
+.rs-log-form { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
+.rs-log-title { font-size:13px; font-weight:500; color:var(--orange); margin-bottom:12px; }
+.rs-form-group { margin-bottom:10px; }
+.rs-form-label { font-size:11px; font-weight:700; color:var(--text3); letter-spacing:1px; margin-bottom:5px; display:block; }
+.rs-form-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 11px; color:var(--text); font-size:13px; font-family:inherit; outline:none; }
+.rs-form-input:focus { border-color:var(--orange); }
+.rs-form-textarea { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 11px; color:var(--text); font-size:12px; font-family:inherit; outline:none; resize:none; min-height:70px; line-height:1.6; }
+.rs-form-textarea:focus { border-color:var(--orange); }
+.rs-rating-group { display:flex; gap:6px; }
+.rs-rating-btn { flex:1; padding:7px; border-radius:7px; font-size:18px; cursor:pointer; border:1px solid var(--border); background:transparent; }
+.rs-rating-btn.selected { border-color:var(--orange); background:#fff3e8; }
+.rs-submit-btn { width:100%; padding:11px; background:var(--orange); color:#fff; font-size:13px; font-weight:700; border:none; border-radius:8px; cursor:pointer; font-family:inherit; margin-top:4px; }
+.rs-log-entry { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:13px 14px; margin-bottom:8px; }
+.rs-log-meta { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+.rs-log-date { font-size:11px; color:var(--text3); }
+.rs-log-tag { font-size:10px; padding:2px 7px; border-radius:4px; background:var(--orange-dim); color:var(--orange-text); font-weight:500; }
+.rs-log-title-text { font-size:13px; font-weight:500; color:var(--text); margin-bottom:4px; }
+.rs-log-text { font-size:12px; color:var(--text2); line-height:1.6; font-weight:300; }
+.rs-empty { text-align:center; padding:32px 16px; color:var(--text3); font-size:12px; }
+.rs-toast { position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%); background:var(--orange); color:#fff; padding:8px 18px; border-radius:20px; font-size:12px; font-weight:700; opacity:0; transition:opacity 0.3s; z-index:999; white-space:nowrap; pointer-events:none; }
+.rs-toast.show { opacity:1; }
+</style>
+
+<div class="rs-wrap">
+<!-- 子tab导航 -->
+<div class="rs-tabs">
+  <button class="rs-tab active" onclick="switchRefTab('overview', this)">总览</button>
+  <button class="rs-tab" onclick="switchRefTab('rules', this)">规则图谱</button>
+  <button class="rs-tab" onclick="switchRefTab('tech', this)">裁判法</button>
+  <button class="rs-tab" onclick="switchRefTab('cards', this)">情境卡片</button>
+  <button class="rs-tab" onclick="switchRefTab('log', this)">执裁日志</button>
+</div>
+
+<!-- 总览 -->
+<div class="rs-section active" id="rs-overview">
+  <div class="rs-today">
+    <div class="rs-today-label">▸ 今日专项</div>
+    <div class="rs-today-text" id="rs-today-text">三人制轮转——前导发动时机与停留判断</div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;cursor:pointer" onclick="switchRefTab('rules',null)">
+      <div style="font-size:24px;margin-bottom:6px">📋</div>
+      <div style="font-size:12px;font-weight:500;color:var(--text)">规则图谱</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:2px">OBR2024 · 完整条款</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;cursor:pointer" onclick="switchRefTab('tech',null)">
+      <div style="font-size:24px;margin-bottom:6px">🏀</div>
+      <div style="font-size:12px;font-weight:500;color:var(--text)">裁判法</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:2px">选位 · 覆盖 · 轮转</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;cursor:pointer" onclick="switchRefTab('cards',null)">
+      <div style="font-size:24px;margin-bottom:6px">🃏</div>
+      <div style="font-size:12px;font-weight:500;color:var(--text)">情境卡片</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:2px" id="rs-card-overview-count">20题</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;cursor:pointer" onclick="switchRefTab('log',null)">
+      <div style="font-size:24px;margin-bottom:6px">📝</div>
+      <div style="font-size:12px;font-weight:500;color:var(--text)">执裁日志</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:2px" id="rs-log-overview-count">0 场次</div>
+    </div>
+  </div>
+  <div id="rs-recent-log">
+    <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--text3);margin-bottom:8px">最近记录</div>
+    <div class="rs-empty">完成比赛后在执裁日志里记录</div>
+  </div>
+</div>
+
+<!-- 规则图谱 -->
+<div class="rs-section" id="rs-rules">
+  <div class="rs-rule-tabs">
+    <button class="rs-rtab active" onclick="filterRefRules('all',this)">全部</button>
+    <button class="rs-rtab" onclick="filterRefRules('clock',this)">计时</button>
+    <button class="rs-rtab" onclick="filterRefRules('violation',this)">违例</button>
+    <button class="rs-rtab" onclick="filterRefRules('foul',this)">犯规</button>
+    <button class="rs-rtab" onclick="filterRefRules('special',this)">特殊</button>
+  </div>
+
+  <!-- 8秒/24秒 -->
+  <div class="rs-rule-card" data-rcat="clock">
+    <div class="rs-rule-hd" onclick="toggleRefRule(this)">
+      <div><div class="rs-rule-meta">计时 · 第28/29条 · OBR2024</div><div class="rs-rule-name">8秒 & 24秒——计时边界</div></div>
+      <span class="rs-rule-arrow">›</span>
+    </div>
+    <div class="rs-rule-body">
+      <div class="rs-sec-title">核心判断</div>
+      <div class="rs-key">投篮离手瞬间，球队控制球结束——8秒/24秒计时同时终止，无论球是否中篮。</div>
+      <div class="rs-sec-title">高频易错</div>
+      <div class="rs-warn">❌ 后场投篮出手还没过中线 → 判8秒。✅ 正确：投篮离手时控制球已结束，不存在8秒违例，中篮计3分有效。</div>
+      <div class="rs-warn">❌ 进攻计时钟信号响了就直接判违例。✅ 正确：信号响时球若已触及篮圈，不判违例。</div>
+      <div class="rs-sec-title">24秒重置完整逻辑（OBR2024第29.2条）</div>
+      <div class="rs-pos-block">
+        <div class="rs-pos-row"><div class="rs-pos-who" style="background:#d0f0e0;color:#006b2e;font-size:9px">球权不变<br>后场</div><div class="rs-pos-desc">重置为24秒</div></div>
+        <div class="rs-pos-row"><div class="rs-pos-who" style="background:#e8eeff;color:#3d1fa0;font-size:9px">球权不变<br>前场</div><div class="rs-pos-desc">剩余≥14秒：不重置，继续计时<br>剩余≤13秒：重置为14秒</div></div>
+        <div class="rs-pos-row"><div class="rs-pos-who" style="background:#fff3e8;color:#a03a00;font-size:9px">球权转换<br>前场</div><div class="rs-pos-desc">固定重置为14秒</div></div>
+        <div class="rs-pos-row"><div class="rs-pos-who" style="background:#fde8d8;color:#e05040;font-size:9px">技术犯规<br>控球方</div><div class="rs-pos-desc">不重置，从停止时继续</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 比赛开始结束 -->
+  <div class="rs-rule-card" data-rcat="clock">
+    <div class="rs-rule-hd" onclick="toggleRefRule(this)">
+      <div><div class="rs-rule-meta">计时 · 第9条</div><div class="rs-rule-name">比赛开始与结束</div></div>
+      <span class="rs-rule-arrow">›</span>
+    </div>
+    <div class="rs-rule-body">
+      <div class="rs-key">第一节：主裁抛球离手时比赛开始。其他各节：掷球入界队员触球时比赛开始。每节结束：计时钟信号响起时比赛结束。</div>
+      <div class="rs-warn">跳球前（抛球离手前）发生犯规：比赛尚未开始，属于比赛休息期间犯规，登记但以跳球重新开始比赛。</div>
+    </div>
+  </div>
+
+  <!-- 走步 -->
+  <div class="rs-rule-card" data-rcat="violation">
+    <div class="rs-rule-hd" onclick="toggleRefRule(this)">
+      <div><div class="rs-rule-meta">违例 · 第25条 · OBR2024完整两步规则</div><div class="rs-rule-name">走步——最高频争议</div></div>
+      <span class="rs-rule-arrow">›</span>
+    </div>
+    <div class="rs-rule-body">
+      <div class="rs-key">判断对象永远是脚，不是步数。核心是：第一步在哪里认定，第二步之后脚是否继续移动。</div>
+      <div class="rs-sec-title">情形一：静止持球</div>
+      <div class="rs-text">双脚同时触地持球：任一脚抬起，另一脚即成中枢脚，不可再移动。<br>起跳传球/投篮：可以跳起，但任一脚落地前球必须已离手。<br>开始运球：中枢脚未离地前球必须已离手。</div>
+      <div class="rs-sec-title">情形二：移动中接球（两步规则）</div>
+      <div class="rs-key">获得控制球后，最多可走两步来停下、传球或投篮。</div>
+      <div class="rs-text"><strong>第一步</strong>：获得控制球后，一脚或双脚同时触地均算第一步。<br>— 双脚同时落地：任一脚可作中枢脚<br>— 单脚落地：该脚为中枢脚<br><strong>第二步</strong>：第一步后另一脚触地，或双脚同时触地。<br>— 单脚起跳后双脚同时落地算第二步，此时不可再转轴，双脚均不可再离地（否则违例）<br><strong>开始运球</strong>：必须在第二步之前出手运球（即第一步时已出手）。</div>
+      <div class="rs-warn">⚠️ 高频误判：运球结束收球后走两步再投篮→合法（这是运球结束后的两步）。关键：看收球瞬间脚在哪里，从那一刻开始数。</div>
+      <div class="rs-sec-title">情形三：倒地持球</div>
+      <div class="rs-text">倒地后滑行持球：合法。躺地获得控制球：合法。随后滚动或试图站起时仍持球：违例。</div>
+    </div>
+  </div>
+
+  <!-- 非法运球 -->
+  <div class="rs-rule-card" data-rcat="violation">
+    <div class="rs-rule-hd" onclick="toggleRefRule(this)">
+      <div><div class="rs-rule-meta">违例 · 第24条</div><div class="rs-rule-name">非法运球</div></div>
+      <span class="rs-rule-arrow">›</span>
+    </div>
+    <div class="rs-rule-body">
+      <div class="rs-key">两次运球：运球结束后再次拍球运球。携带球：手掌明显向上托住球，或球静止于掌中。</div>
+      <div class="rs-warn">运球中球从手上滑落再捡起继续运球→合法（球未被控制住）。判断标准是"是否曾经控制球后停止运球"。</div>
+    </div>
+  </div>
+
+  <!-- 3秒/5秒 -->
+  <div class="rs-rule-card" data-rcat="violation">
+    <div class="rs-rule-hd" onclick="toggleRefRule(this)">
+      <div><div class="rs-rule-meta">违例 · 第26/27条</div><div class="rs-rule-name">3秒 & 5秒规则</div></div>
+      <span class="rs-rule-arrow">›</span>
+    </div>
+    <div class="rs-rule-body">
+      <div class="rs-sec-title">3秒违例</div>
+      <div class="rs-key">进攻队员不得在对方禁区内停留超过3秒（持球或不持球均适用）。</div>
+      <div class="rs-text">例外：正在做投篮动作时不计时。球队失去控制球时不计时（如球在空中）。队员正在离开禁区时不计时。</div>
+      <div class="rs-sec-title">5秒违例</div>
+      <div class="rs-key">被严密防守（一臂距离内）的持球队员必须在5秒内传球、投球或运球。</div>
+      <div class="rs-warn">漏接球后重新拿住：5秒计时不重置，继续计时。漏接不是传/投/运。</div>
+    </div>
+  </div>
+
+  <!-- 侵人犯规 -->
+  <div class="rs-rule-card" data-rcat="foul">
+    <div class="rs-rule-hd" onclick="toggleRefRule(this)">
+      <div><div class="rs-rule-meta">犯规 · 第33条 · OBR2024精确标准</div><div class="rs-rule-name">侵人犯规——圆柱体 & 垂直性</div></div>
+      <span class="rs-rule-arrow">›</span>
+    </div>
+    <div class="rs-rule-body">
+      <div class="rs-sec-title">圆柱体原则</div>
+      <div class="rs-key">每名队员在场上占据一个"想象中的圆柱体"空间。任何人离开自己的圆柱体并与已建立圆柱体的对方接触，造成接触的一方负责。</div>
+      <div class="rs-sec-title">合法防守位置建立条件</div>
+      <div class="rs-key">面向对手 + 双脚触地。建立后可：保持不动、垂直起跳、侧向移动、后退移动。不可：向持球队员方向移动。</div>
+      <div class="rs-sec-title">撞人/阻挡判断（OBR2024第33.4条）</div>
+      <div class="rs-warn">❌ 原错误理解：判断时只看防守方双脚是否停稳。<br>✅ OBR2024精确标准：防守方建立位置后允许侧向/后退移动，脚可短暂离地。关键是移动方向是否朝向持球队员，以及接触是否发生在躯干。</div>
+      <div class="rs-sec-title">无球队员防守（第33.5条）</div>
+      <div class="rs-key">时间和距离原则：防守方至少留出对手1个正常步骤的空间来停止或改变方向，距离要求与对手速度成正比。</div>
+    </div>
+  </div>
+
+  <!-- 违体犯规 -->
+  <div class="rs-rule-card" data-rcat="foul">
+    <div class="rs-rule-hd" onclick="toggleRefRule(this)">
+      <div><div class="rs-rule-meta">犯规 · 第37条 · OBR2024四种情形</div><div class="rs-rule-name">违体犯规——判断标准</div></div>
+      <span class="rs-rule-arrow">›</span>
+    </div>
+    <div class="rs-rule-body">
+      <div class="rs-pos-block">
+        <div class="rs-pos-row"><div class="rs-pos-who" style="background:#fde8d8;color:#a03a00;font-size:9px">①</div><div class="rs-pos-desc" style="font-size:12px">与对方接触，但没有正当争夺球权的行为。</div></div>
+        <div class="rs-pos-row"><div class="rs-pos-who" style="background:#fde8d8;color:#a03a00;font-size:9px">②</div><div class="rs-pos-desc" style="font-size:12px">试图打球或防守时造成过激、激烈的接触。</div></div>
+        <div class="rs-pos-row"><div class="rs-pos-who" style="background:#fde8d8;color:#a03a00;font-size:9px">③</div><div class="rs-pos-desc" style="font-size:12px"><strong style="color:#a03a00">转换防守中不必要接触</strong>：防守方为阻止快攻推进（进攻方开始投篮动作前），造成不必要接触。<br><span style="color:var(--text3);font-size:11px">→ 校园比赛最常漏判</span></div></div>
+        <div class="rs-pos-row"><div class="rs-pos-who" style="background:#fde8d8;color:#a03a00;font-size:9px">④</div><div class="rs-pos-desc" style="font-size:12px"><strong style="color:#a03a00">背后/侧面非法接触</strong>：进攻方正向对方篮筐推进、与篮筐之间无防守队员，防守方从背后或侧面造成接触（投篮动作前）。</div></div>
+      </div>
+      <div class="rs-sec-title">罚则</div>
+      <div class="rs-text">非投篮动作：2次不占位罚球。投篮动作且球中：得分有效+1次罚球。投篮动作且球未中：2或3次罚球。<br>所有情况：罚球后前场掷球入界。</div>
+      <div class="rs-warn">累计2次违体，或1技术+1违体，或2技术 = 取消比赛资格（离场）。</div>
+    </div>
+  </div>
+
+  <!-- 干涉/干扰得分 -->
+  <div class="rs-rule-card" data-rcat="special">
+    <div class="rs-rule-hd" onclick="toggleRefRule(this)">
+      <div><div class="rs-rule-meta">特殊 · 第31条 · OBR2024</div><div class="rs-rule-name">干涉得分 & 干扰得分</div></div>
+      <span class="rs-rule-arrow">›</span>
+    </div>
+    <div class="rs-rule-body">
+      <div class="rs-key">球只有在到达最高点并开始下落后被触及，才是违例（干涉/干扰得分）。在最高点触及 = 合法。</div>
+      <div class="rs-sec-title">防守方违例（干涉得分）</div>
+      <div class="rs-text">球在向下飞行轨迹中被防守方触及 = 干涉得分违例，进球得分有效。</div>
+      <div class="rs-sec-title">进攻方违例（干扰得分）</div>
+      <div class="rs-text">进攻方在球的下落轨迹中触及球（除非球明显不会进篮）= 干扰得分违例，进球无效。</div>
+    </div>
+  </div>
+
+  <!-- 得分值 -->
+  <div class="rs-rule-card" data-rcat="special">
+    <div class="rs-rule-hd" onclick="toggleRefRule(this)">
+      <div><div class="rs-rule-meta">特殊 · 第16条</div><div class="rs-rule-name">得分值判定</div></div>
+      <span class="rs-rule-arrow">›</span>
+    </div>
+    <div class="rs-rule-body">
+      <div class="rs-key">计3分的充分条件：球从三分投篮区投篮动作离手进入球篮。掷球入界出手不算投篮动作，无论从哪个区域触及都只计2分。</div>
+    </div>
+  </div>
+
+  <!-- 跳球/交替拥有 -->
+  <div class="rs-rule-card" data-rcat="special">
+    <div class="rs-rule-hd" onclick="toggleRefRule(this)">
+      <div><div class="rs-rule-meta">特殊 · 第12条</div><div class="rs-rule-name">跳球 & 交替拥有</div></div>
+      <span class="rs-rule-arrow">›</span>
+    </div>
+    <div class="rs-rule-body">
+      <div class="rs-key">24秒信号响时球在空中：触圈→不判违例；未触圈→判进攻时间违例（交替拥有程序不适用于投篮时间违例）。</div>
+      <div class="rs-warn">进攻计时钟时间已到时发生争球→不适用交替拥有程序，这是投篮时间违例，由对方掷球入界。</div>
+    </div>
+  </div>
+</div>
+
+<!-- 裁判法 -->
+<div class="rs-section" id="rs-tech">
+  <div class="rs-rule-card" style="margin-bottom:10px">
+    <div class="rs-rule-hd" style="cursor:default">
+      <div><div class="rs-rule-meta">基础概念</div><div class="rs-rule-name">三色标记系统</div></div>
+    </div>
+    <div class="rs-rule-body" style="display:block;padding:12px 15px 14px">
+      <div class="rs-text">
+        <span style="color:#4080e0">●</span> <strong>前导（L）</strong>：端线一侧，始终在强侧（球侧）<br>
+        <span style="color:#40c080">●</span> <strong>追踪（T）</strong>：靠近中线，与前导同侧（强侧）<br>
+        <span style="color:#e05040">●</span> <strong>中央（C）</strong>：罚球线延长线，通常在弱侧<br><br>
+        核心理念：尽可能让两名裁判（前导+追踪）落位于球侧，提高决策准确性。
+      </div>
+    </div>
+  </div>
+
+  <div class="rs-tech-card">
+    <div class="rs-tech-hd" onclick="toggleRefTech(this)">
+      <div class="rs-tech-dot" style="background:var(--orange)"></div>
+      <div class="rs-tech-info"><div class="rs-tech-name">轮转的四个阶段</div><div class="rs-tech-sub">完整流程 · 最重要的裁判法内容</div></div>
+      <span class="rs-tech-arrow">›</span>
+    </div>
+    <div class="rs-tech-body">
+      <div class="rs-key">轮转成功三要素：① 适当的发动点（矩形2区）② 适当的时机（球移至弱侧）③ 适当的技巧（预测、急速走动、毫不犹豫）</div>
+      <div class="rs-pos-block">
+        <div class="rs-pos-row"><div class="rs-pos-who" style="background:#fff3e8;color:#a03a00">阶1</div><div><div class="rs-pos-desc">球进入矩形2区</div><div class="rs-pos-note">前导移至发动轮转点待机。这不是执裁位置，发生突破/投篮时要立即移动保持执裁距离。</div></div></div>
+        <div class="rs-pos-row"><div class="rs-pos-who" style="background:#fff3e8;color:#a03a00">阶2</div><div><div class="rs-pos-desc">球移至弱侧（矩形2区之外）</div><div class="rs-pos-note">前导停留1秒（"一次呼吸"）分析弱侧是否立即有投篮/突破。若会→停留不轮转；若不会→发动轮转。同时追踪开始移向新中央位置。</div></div></div>
+        <div class="rs-pos-row"><div class="rs-pos-who" style="background:#fff3e8;color:#a03a00">阶3</div><div><div class="rs-pos-desc">前导完成轮转，到达新球侧</div><div class="rs-pos-note">中央一直执裁球直到前导准备好接管，然后中央向后退（45度面向球篮）移至新追踪位置。</div></div></div>
+        <div class="rs-pos-row"><div class="rs-pos-who" style="background:#fff3e8;color:#a03a00">阶4</div><div><div class="rs-pos-desc">中断轮转的条件</div><div class="rs-pos-note">弱侧突然突破/投篮：前导停止轮转返回。横传球到另一侧：前导停止返回球侧。前导越过篮板或禁区中点后=不可返回的点，必须完成轮转。</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rs-tech-card">
+    <div class="rs-tech-hd" onclick="toggleRefTech(this)">
+      <div class="rs-tech-dot" style="background:#4080e0"></div>
+      <div class="rs-tech-info"><div class="rs-tech-name">前导（L）执裁要点</div><div class="rs-tech-sub">端线一侧 · 始终球侧 · 动作区核心</div></div>
+      <span class="rs-tech-arrow">›</span>
+    </div>
+    <div class="rs-tech-body">
+      <div class="rs-check-item"><span class="rs-check-icon">▸</span>工作区：三分线到篮板边缘，面对球篮45°角，距端线不超过1米，禁区外。</div>
+      <div class="rs-check-item"><span class="rs-check-icon">▸</span>始终在球侧（强侧）落位，负责动作区（"公交车站"）绝大多数犯规判罚。</div>
+      <div class="rs-check-item"><span class="rs-check-icon">▸</span>球传至强侧篮下时：向外做"交叉步"，扩宽执裁空间，可看清突破路径和弱侧协防。</div>
+      <div class="rs-check-item"><span class="rs-check-icon">▸</span>不要"越区宣判"（在弱侧突破中宣判）——相信中央会处理。</div>
+      <div class="rs-check-item"><span class="rs-check-icon">▸</span>攻守转换：领先于比赛，4秒内到端线，直行（不弯曲），始终面对场地，"外侧/外侧"角。</div>
+      <div class="rs-check-item"><span class="rs-check-icon">▸</span>自我校验：站在正确位置时，你应该能看到篮圈前沿。</div>
+    </div>
+  </div>
+
+  <div class="rs-tech-card">
+    <div class="rs-tech-hd" onclick="toggleRefTech(this)">
+      <div class="rs-tech-dot" style="background:#40c080"></div>
+      <div class="rs-tech-info"><div class="rs-tech-name">追踪（T）执裁要点</div><div class="rs-tech-sub">中线附近 · 始终在比赛后方</div></div>
+      <span class="rs-tech-arrow">›</span>
+    </div>
+    <div class="rs-tech-body">
+      <div class="rs-check-item"><span class="rs-check-icon">▸</span>工作区：球队席面积线和中线之间，通常在场地内工作。</div>
+      <div class="rs-check-item"><span class="rs-check-icon">▸</span>始终在比赛后面保持1-2步距离（禁止"溜溜跑"紧跟队员）。</div>
+      <div class="rs-check-item"><span class="rs-check-icon">▸</span>攻守转换：在中篮和掷球入界后，等球进入球场并保持与球最小3米距离再入场。成为最后到前场的人。</div>
+      <div class="rs-check-item"><span class="rs-check-icon">▸</span>球移至靠近边线时：向球场内移1-2步保持"开角"。</div>
+      <div class="rs-check-item"><span class="rs-check-icon">▸</span>"追踪交叉步"：队员向左移动时，追踪向右跨步。</div>
+      <div class="rs-check-item"><span class="rs-check-icon">▸</span>负责8秒计时、中线附近球回后场违例、强侧边线出界。</div>
+    </div>
+  </div>
+
+  <div class="rs-tech-card">
+    <div class="rs-tech-hd" onclick="toggleRefTech(this)">
+      <div class="rs-tech-dot" style="background:#e05040"></div>
+      <div class="rs-tech-info"><div class="rs-tech-name">中央（C）执裁要点</div><div class="rs-tech-sub">罚球线延长线 · 弱侧主责</div></div>
+      <span class="rs-tech-arrow">›</span>
+    </div>
+    <div class="rs-tech-body">
+      <div class="rs-check-item"><span class="rs-check-icon">▸</span>工作区：罚球圈顶部到"罚球线下方半圆底部"之间，通常在场地内。</div>
+      <div class="rs-check-item"><span class="rs-check-icon">▸</span>弱侧到篮下是主责区。不要被动——弱侧接触必须主动判罚，否则迫使追踪越区。</div>
+      <div class="rs-check-item"><span class="rs-check-icon">▸</span>攻守转换：直奔前场罚球线延长线，面对场地，在到达前场前始终控制场地。</div>
+      <div class="rs-check-item"><span class="rs-check-icon">▸</span>"中央交叉步"：队员向左突破时，中央向右移（永远保持三角视角）。</div>
+      <div class="rs-check-item"><span class="rs-check-icon">▸</span>快攻时：必须全速到达罚球线延长线，覆盖干扰/干涉得分违例。</div>
+      <div class="rs-check-item"><span class="rs-check-icon">▸</span>夹击情况：移近中线观察，但不以轮转方式完成（夹击结束后返回常规位置）。</div>
+    </div>
+  </div>
+
+  <div class="rs-tech-card">
+    <div class="rs-tech-hd" onclick="toggleRefTech(this)">
+      <div class="rs-tech-dot" style="background:var(--orange)"></div>
+      <div class="rs-tech-info"><div class="rs-tech-name">罚球覆盖</div><div class="rs-tech-sub">三人职责分工</div></div>
+      <span class="rs-tech-arrow">›</span>
+    </div>
+    <div class="rs-tech-body">
+      <div class="rs-pos-block">
+        <div class="rs-pos-row"><div class="rs-pos-who" style="background:#e8eeff;color:#3d1fa0">前导</div><div><div class="rs-pos-desc">执行裁判，管理所有罚球</div><div class="rs-pos-note">负责记录台一侧限制区占位点队员。最后一次罚球时落位常规前导位置。</div></div></div>
+        <div class="rs-pos-row"><div class="rs-pos-who" style="background:#fde8d8;color:#a03a00">中央</div><div><div class="rs-pos-desc">用官方手势指示罚球次数（唯一做此手势的人）</div><div class="rs-pos-note">观察罚球队员违例。负责记录台对侧限制区占位点队员。靠近边线。</div></div></div>
+        <div class="rs-pos-row"><div class="rs-pos-who" style="background:#d0f0e0;color:#006b2e">追踪</div><div><div class="rs-pos-desc">负责罚球线后及三分线后其他队员</div><div class="rs-pos-note">最后一次罚球时，若新前场有对位队员，向新前场调整位置。</div></div></div>
+      </div>
+      <div class="rs-warn" style="margin-top:8px">罚球违例且球在空中时，立即鸣哨（无需等待球是否进篮）。</div>
+    </div>
+  </div>
+
+  <div class="rs-tech-card">
+    <div class="rs-tech-hd" onclick="toggleRefTech(this)">
+      <div class="rs-tech-dot" style="background:var(--orange)"></div>
+      <div class="rs-tech-info"><div class="rs-tech-name">犯规报告后的轮换</div><div class="rs-tech-sub">报告 → 轮换 → 恢复</div></div>
+      <span class="rs-tech-arrow">›</span>
+    </div>
+    <div class="rs-tech-body">
+      <div class="rs-key">宣判犯规的裁判员 → 向记录台报告 → 移向对侧成为新追踪/中央。其他两名裁判员填补空位。</div>
+      <div class="rs-text">报告要点：声音响亮 · 手势清晰 · 有节奏感。报告完立即想好下一个位置在哪里，快速移动。</div>
+      <div class="rs-warn">两名裁判同时鸣哨同一起犯规：由对侧（距离犯规点更远）的裁判员报告。</div>
+    </div>
+  </div>
+</div>
+
+<!-- 情境卡片 -->
+<div class="rs-section" id="rs-cards">
+  <div class="rs-card-stats">
+    <div class="rs-stat-box"><div class="rs-stat-num" id="rs-total" style="color:var(--orange)">20</div><div class="rs-stat-label">总卡片</div></div>
+    <div class="rs-stat-box"><div class="rs-stat-num" id="rs-done" style="color:var(--green)">0</div><div class="rs-stat-label">已掌握</div></div>
+    <div class="rs-stat-box"><div class="rs-stat-num" id="rs-wrong" style="color:#e05040">0</div><div class="rs-stat-label">需复习</div></div>
+  </div>
+  <div class="rs-card-filter">
+    <button class="rs-cfbtn active" onclick="filterRefCards('all',this)">全部</button>
+    <button class="rs-cfbtn" onclick="filterRefCards('rule',this)">规则判断</button>
+    <button class="rs-cfbtn" onclick="filterRefCards('tech',this)">裁判法</button>
+    <button class="rs-cfbtn" onclick="filterRefCards('combo',this)">综合情境</button>
+  </div>
+  <div class="rs-flash" id="rs-flash" onclick="flipRefCard()">
+    <div class="rs-flash-inner" id="rs-flash-inner">
+      <div class="rs-flash-front">
+        <div class="rs-flash-type" id="rs-flash-type">规则判断</div>
+        <div class="rs-flash-q" id="rs-flash-q">加载中...</div>
+        <div class="rs-flash-hint">点击卡片查看答案</div>
+      </div>
+      <div class="rs-flash-back">
+        <div class="rs-flash-a-label">▸ 正确处理</div>
+        <div class="rs-flash-a" id="rs-flash-a">加载中...</div>
+      </div>
+    </div>
+  </div>
+  <div class="rs-flash-actions">
+    <button class="rs-flash-btn rs-btn-wrong" onclick="markRefCard(false)">❌ 还不熟</button>
+    <button class="rs-flash-btn rs-btn-next" onclick="nextRefCard()">下一题 →</button>
+    <button class="rs-flash-btn rs-btn-right" onclick="markRefCard(true)">✅ 已掌握</button>
+  </div>
+  <div class="rs-progress"><div class="rs-progress-fill" id="rs-progress" style="width:0%"></div></div>
+  <div id="rs-card-list"></div>
+</div>
+
+<!-- 执裁日志 -->
+<div class="rs-section" id="rs-log">
+  <div class="rs-log-form">
+    <div class="rs-log-title">📝 新建执裁记录（同步到裁判笔记）</div>
+    <div class="rs-form-group">
+      <label class="rs-form-label">比赛日期</label>
+      <input type="date" class="rs-form-input" id="rs-log-date">
+    </div>
+    <div class="rs-form-group">
+      <label class="rs-form-label">标签（如：联赛第3场、三人执裁）</label>
+      <input type="text" class="rs-form-input" id="rs-log-tag" placeholder="简短标签">
+    </div>
+    <div class="rs-form-group">
+      <label class="rs-form-label">最难判的一个情况（标题）</label>
+      <input type="text" class="rs-form-input" id="rs-log-title" placeholder="用一句话概括这起情况">
+    </div>
+    <div class="rs-form-group">
+      <label class="rs-form-label">最明显的选位/轮转问题 & 详细复盘</label>
+      <textarea class="rs-form-textarea" id="rs-log-text" placeholder="描述具体情境，你判了什么，现在认为对不对，为什么..."></textarea>
+    </div>
+    <div class="rs-form-group">
+      <label class="rs-form-label">自我评分</label>
+      <div class="rs-rating-group" id="rs-rating-group">
+        <button class="rs-rating-btn" onclick="setRefRating(1,this)">😞</button>
+        <button class="rs-rating-btn" onclick="setRefRating(2,this)">😐</button>
+        <button class="rs-rating-btn" onclick="setRefRating(3,this)">🙂</button>
+        <button class="rs-rating-btn" onclick="setRefRating(4,this)">😊</button>
+        <button class="rs-rating-btn" onclick="setRefRating(5,this)">🔥</button>
+      </div>
+    </div>
+    <button class="rs-submit-btn" onclick="submitRefLog()">保存记录</button>
+  </div>
+  <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--text3);margin:0 0 10px">历史记录</div>
+  <div id="rs-log-list"><div class="rs-empty">完成比赛后记录在这里，积累越多进步越快</div></div>
+</div>
+
+</div><!-- /.rs-wrap -->
+<div class="rs-toast" id="rs-toast"></div>
+`;
+}
+
+let refCurrentRating = 0;
+
+function bindRefSystemEvents() {
+  // 今日专项
+  const focuses = [
+    '三人制轮转——前导发动时机与停留判断',
+    '8秒/24秒计时——球队控制球的准确边界',
+    '走步违例——两步规则OBR2024完整解读',
+    '侵人犯规——圆柱体与垂直性原则',
+    '干扰/干涉得分——最高点触及合法',
+    '罚球覆盖——三人职责分工',
+    '犯规报告后的轮换程序'
+  ];
+  const el = document.getElementById('rs-today-text');
+  if (el) el.textContent = focuses[new Date().getDay()];
+  // 日期默认今天
+  const dateEl = document.getElementById('rs-log-date');
+  if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+}
+
+function switchRefTab(tab, btn) {
+  document.querySelectorAll('.rs-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  else {
+    const map = {overview:0,rules:1,tech:2,cards:3,log:4};
+    const tabs = document.querySelectorAll('.rs-tab');
+    if (tabs[map[tab]]) tabs[map[tab]].classList.add('active');
+  }
+  document.querySelectorAll('.rs-section').forEach(s => s.classList.remove('active'));
+  const target = document.getElementById('rs-' + tab);
+  if (target) target.classList.add('active');
+  if (tab === 'overview') { renderRefRecentLog(); updateRefOverviewCount(); }
+  if (tab === 'log') renderRefLogs();
+  if (tab === 'cards') { loadRefCard(refCardIndex); renderRefCardList(); updateRefCardStats(); }
+}
+
+// ── 规则图谱 ──
+function toggleRefRule(hd) {
+  const body = hd.nextElementSibling;
+  const arrow = hd.querySelector('.rs-rule-arrow');
+  body.classList.toggle('open');
+  arrow.classList.toggle('open');
+}
+function filterRefRules(cat, btn) {
+  document.querySelectorAll('.rs-rtab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.rs-rule-card[data-rcat]').forEach(c => {
+    c.style.display = (cat === 'all' || c.dataset.rcat === cat) ? '' : 'none';
+  });
+}
+
+// ── 裁判法 ──
+function toggleRefTech(hd) {
+  const body = hd.nextElementSibling;
+  const arrow = hd.querySelector('.rs-tech-arrow');
+  body.classList.toggle('open');
+  arrow.classList.toggle('open');
+}
+
+// ── 卡片系统 ──
+function getRefFilteredCards() {
+  if (refCardFilter === 'all') return REF_CARDS;
+  return REF_CARDS.filter(c => c.cat === refCardFilter);
+}
+function loadRefCard(idx) {
+  const cards = getRefFilteredCards();
+  if (!cards.length) return;
+  const card = cards[idx % cards.length];
+  const typeEl = document.getElementById('rs-flash-type');
+  const qEl = document.getElementById('rs-flash-q');
+  const aEl = document.getElementById('rs-flash-a');
+  if (typeEl) typeEl.textContent = card.type;
+  if (qEl) qEl.textContent = card.q;
+  if (aEl) aEl.textContent = card.a;
+  const inner = document.getElementById('rs-flash-inner');
+  if (inner) inner.classList.remove('flipped');
+  updateRefCardStats();
+}
+function flipRefCard() {
+  const inner = document.getElementById('rs-flash-inner');
+  if (inner) inner.classList.toggle('flipped');
+}
+function nextRefCard() {
+  const cards = getRefFilteredCards();
+  refCardIndex = (refCardIndex + 1) % cards.length;
+  loadRefCard(refCardIndex);
+}
+function markRefCard(correct) {
+  const cards = getRefFilteredCards();
+  const card = cards[refCardIndex % cards.length];
+  refCardStatus[card.id] = correct ? 'right' : 'wrong';
+  saveRefCardStatus();
+  showRefToast(correct ? '✅ 已标记为掌握' : '❌ 已标记为需复习');
+  updateRefCardStats();
+  renderRefCardList();
+  setTimeout(() => nextRefCard(), 400);
+}
+function updateRefCardStats() {
+  const done = Object.values(refCardStatus).filter(v => v === 'right').length;
+  const wrong = Object.values(refCardStatus).filter(v => v === 'wrong').length;
+  const totalEl = document.getElementById('rs-total');
+  const doneEl = document.getElementById('rs-done');
+  const wrongEl = document.getElementById('rs-wrong');
+  const prog = document.getElementById('rs-progress');
+  if (totalEl) totalEl.textContent = REF_CARDS.length;
+  if (doneEl) doneEl.textContent = done;
+  if (wrongEl) wrongEl.textContent = wrong;
+  if (prog) prog.style.width = (done / REF_CARDS.length * 100) + '%';
+  const ovEl = document.getElementById('rs-card-overview-count');
+  if (ovEl) ovEl.textContent = `${done}/${REF_CARDS.length} 已掌握`;
+}
+function filterRefCards(cat, btn) {
+  refCardFilter = cat;
+  refCardIndex = 0;
+  document.querySelectorAll('.rs-cfbtn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadRefCard(0);
+  renderRefCardList();
+}
+function renderRefCardList() {
+  const cards = getRefFilteredCards();
+  const list = document.getElementById('rs-card-list');
+  if (!list) return;
+  list.innerHTML = cards.map((card, i) => {
+    const status = refCardStatus[card.id];
+    const icon = status === 'right' ? '✅' : status === 'wrong' ? '❌' : '○';
+    return `<div class="rs-card-list-item" onclick="jumpRefCard(${i})">
+      <span style="font-size:14px">${icon}</span>
+      <div style="flex:1">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:2px">${card.type}</div>
+        <div style="font-size:12px;color:var(--text);line-height:1.4">${card.q.substring(0,48)}${card.q.length>48?'...':''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function jumpRefCard(idx) {
+  refCardIndex = idx;
+  loadRefCard(idx);
+  document.getElementById('rs-flash')?.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+// ── 执裁日志 ──
+function setRefRating(val, btn) {
+  refCurrentRating = val;
+  document.querySelectorAll('.rs-rating-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+function submitRefLog() {
+  const date = document.getElementById('rs-log-date')?.value;
+  const tag = document.getElementById('rs-log-tag')?.value.trim();
+  const title = document.getElementById('rs-log-title')?.value.trim();
+  const text = document.getElementById('rs-log-text')?.value.trim();
+  if (!title || !text) { showRefToast('请填写标题和内容'); return; }
+  const chips = '执裁日志' + (refCurrentRating ? ',评分' + ['','😞','😐','🙂','😊','🔥'][refCurrentRating] : '');
+  saveRefLogToStore(date || new Date().toISOString().split('T')[0], title, text, tag || '执裁日志', chips, refCurrentRating);
+  // 清空表单
+  if (document.getElementById('rs-log-title')) document.getElementById('rs-log-title').value = '';
+  if (document.getElementById('rs-log-text')) document.getElementById('rs-log-text').value = '';
+  if (document.getElementById('rs-log-tag')) document.getElementById('rs-log-tag').value = '';
+  document.querySelectorAll('.rs-rating-btn').forEach(b => b.classList.remove('selected'));
+  refCurrentRating = 0;
+}
+function renderRefLogs() {
+  const list = document.getElementById('rs-log-list');
+  if (!list) return;
+  const logs = getRefLogsFromStore();
+  const ovEl = document.getElementById('rs-log-overview-count');
+  if (ovEl) ovEl.textContent = logs.length + ' 场次';
+  if (!logs.length) {
+    list.innerHTML = '<div class="rs-empty">完成比赛后记录在这里，积累越多进步越快</div>';
+    return;
+  }
+  list.innerHTML = logs.slice(0, 20).map(log => `
+    <div class="rs-log-entry">
+      <div class="rs-log-meta">
+        <span class="rs-log-date">${(log.date||'').replace(/-/g,' · ')}</span>
+        ${log.tag ? `<span class="rs-log-tag">${log.tag}</span>` : ''}
+      </div>
+      <div class="rs-log-title-text">${log.title}</div>
+      ${log.text ? `<div class="rs-log-text">${log.text.substring(0,150)}${log.text.length>150?'...':''}</div>` : ''}
+    </div>
+  `).join('');
+}
+function renderRefRecentLog() {
+  const logs = getRefLogsFromStore();
+  const el = document.getElementById('rs-recent-log');
+  if (!el) return;
+  const ovEl = document.getElementById('rs-log-overview-count');
+  if (ovEl) ovEl.textContent = logs.length + ' 场次';
+  if (!logs.length) {
+    el.innerHTML = '<div style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--text3);margin-bottom:8px">最近记录</div><div class="rs-empty">完成比赛后在执裁日志里记录</div>';
+    return;
+  }
+  const log = logs[0];
+  el.innerHTML = `
+    <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--text3);margin-bottom:8px">最近记录</div>
+    <div class="rs-log-entry">
+      <div class="rs-log-meta">
+        <span class="rs-log-date">${(log.date||'').replace(/-/g,' · ')}</span>
+        ${log.tag ? `<span class="rs-log-tag">${log.tag}</span>` : ''}
+      </div>
+      <div class="rs-log-title-text">${log.title}</div>
+      ${log.text ? `<div class="rs-log-text">${log.text.substring(0,120)}${log.text.length>120?'...':''}</div>` : ''}
+    </div>`;
+}
+function updateRefOverviewCount() {
+  updateRefCardStats();
+  const logs = getRefLogsFromStore();
+  const ovEl = document.getElementById('rs-log-overview-count');
+  if (ovEl) ovEl.textContent = logs.length + ' 场次';
+}
+function showRefToast(msg) {
+  const t = document.getElementById('rs-toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// 初始化时加载卡片状态
+loadRefCardStatus();
+
+// ══════════════════════════════════════════════════
+// 健身子模块
+// 训练计划 · 训练记录 · 身体指标 · 简单日志
+// ══════════════════════════════════════════════════
+
+const FIT_STORE = 'bball_fitness_v1';
+const FIT_METRICS = 'bball_metrics_v1';
+
+function loadFitData() {
+  try { return JSON.parse(localStorage.getItem(FIT_STORE) || '{"sessions":[],"plans":{}}'); } catch(e) { return {sessions:[],plans:{}}; }
+}
+function saveFitData(data) {
+  try { localStorage.setItem(FIT_STORE, JSON.stringify(data)); } catch(e) {}
+}
+function loadMetrics() {
+  try { return JSON.parse(localStorage.getItem(FIT_METRICS) || '[]'); } catch(e) { return []; }
+}
+function saveMetrics(arr) {
+  try { localStorage.setItem(FIT_METRICS, JSON.stringify(arr)); } catch(e) {}
+}
+
+const FIT_PARTS = ['胸', '背', '肩', '腿', '手臂', '核心', '有氧', '全身'];
+const FIT_COLORS = {胸:'#e05060', 背:'#5060e0', 肩:'#e0a030', 腿:'#30a060', 手臂:'#c050c0', 核心:'#e07030', 有氧:'#30b0c0', 全身:'#808080' };
+
+function buildFitnessSystem() {
+  const panel = document.getElementById('fitness-panel');
+  panel.innerHTML = buildFitnessHTML();
+  initFitnessEvents();
+}
+
+function buildFitnessHTML() {
+  return `
+<style>
+.ft-wrap { padding: 0 0 80px; }
+.ft-tabs { display:flex; gap:6px; padding:12px 16px 0; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid var(--border); background:var(--surface); position:sticky; top:53px; z-index:40; }
+.ft-tabs::-webkit-scrollbar { display:none; }
+.ft-tab { flex-shrink:0; padding:6px 14px; border-radius:20px; font-size:12px; font-weight:500; border:1px solid var(--border); cursor:pointer; background:transparent; color:var(--text3); font-family:inherit; transition:all 0.15s; margin-bottom:10px; }
+.ft-tab.active { background:var(--green); color:#fff; border-color:var(--green); }
+.ft-section { display:none; padding:16px; }
+.ft-section.active { display:block; }
+
+/* 总览 */
+.ft-overview-stats { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; }
+.ft-stat-box { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px; text-align:center; }
+.ft-stat-n { font-family:'Bebas Neue',sans-serif; font-size:2rem; color:var(--text); line-height:1; }
+.ft-stat-l { font-size:11px; color:var(--text3); margin-top:4px; }
+.ft-part-chips { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+.ft-part-chip { padding:5px 12px; border-radius:20px; font-size:12px; font-weight:500; cursor:pointer; border:none; font-family:inherit; }
+.ft-recent-title { font-size:11px; font-weight:700; letter-spacing:2px; color:var(--text3); margin-bottom:8px; }
+
+/* 训练记录 */
+.ft-log-form { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
+.ft-form-title { font-size:13px; font-weight:500; color:var(--green); margin-bottom:12px; }
+.ft-form-group { margin-bottom:10px; }
+.ft-form-label { font-size:11px; font-weight:700; color:var(--text3); letter-spacing:1px; margin-bottom:5px; display:block; }
+.ft-form-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 11px; color:var(--text); font-size:14px; font-family:inherit; outline:none; -webkit-appearance:none; }
+.ft-form-input:focus { border-color:var(--green); }
+.ft-form-textarea { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px 11px; color:var(--text); font-size:13px; font-family:inherit; outline:none; resize:none; min-height:60px; line-height:1.6; }
+.ft-form-textarea:focus { border-color:var(--green); }
+.ft-part-select { display:flex; gap:6px; flex-wrap:wrap; }
+.ft-part-btn { padding:5px 12px; border-radius:20px; font-size:12px; font-weight:500; cursor:pointer; border:1px solid var(--border); background:transparent; color:var(--text3); font-family:inherit; -webkit-tap-highlight-color:transparent; }
+.ft-part-btn.selected { color:#fff; border-color:transparent; }
+.ft-submit-btn { width:100%; padding:11px; background:var(--green); color:#fff; font-size:13px; font-weight:700; border:none; border-radius:8px; cursor:pointer; font-family:inherit; margin-top:4px; }
+.ft-submit-btn:active { opacity:0.85; }
+
+/* 动作列表 */
+.ft-exercises { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+.ft-exercise-row { display:flex; gap:8px; align-items:center; background:var(--surface2); border-radius:8px; padding:8px 10px; }
+.ft-ex-name { flex:1; font-size:13px; color:var(--text); }
+.ft-ex-sets { width:52px; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:5px 7px; font-size:13px; color:var(--text); font-family:inherit; text-align:center; outline:none; -webkit-appearance:none; }
+.ft-ex-reps { width:52px; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:5px 7px; font-size:13px; color:var(--text); font-family:inherit; text-align:center; outline:none; -webkit-appearance:none; }
+.ft-ex-weight { width:60px; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:5px 7px; font-size:13px; color:var(--text); font-family:inherit; text-align:center; outline:none; -webkit-appearance:none; }
+.ft-ex-del { width:28px; height:28px; border:none; background:transparent; color:var(--text3); cursor:pointer; font-size:16px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+.ft-add-ex-btn { width:100%; padding:8px; border:1px dashed var(--border2); border-radius:8px; background:transparent; color:var(--text3); font-size:12px; cursor:pointer; font-family:inherit; margin-top:6px; }
+
+/* 训练记录卡片 */
+.ft-session-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:13px 14px; margin-bottom:10px; }
+.ft-session-top { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.ft-session-date { font-size:12px; color:var(--text3); }
+.ft-session-part { font-size:11px; font-weight:700; padding:2px 8px; border-radius:4px; color:#fff; }
+.ft-session-title { font-size:14px; font-weight:500; color:var(--text); margin-bottom:4px; }
+.ft-session-exercises { display:flex; flex-direction:column; gap:3px; margin-top:6px; }
+.ft-session-ex-row { font-size:12px; color:var(--text2); display:flex; gap:6px; }
+.ft-session-ex-name { color:var(--text); font-weight:500; min-width:60px; }
+.ft-session-note { font-size:12px; color:var(--text3); margin-top:6px; font-style:italic; }
+.ft-session-del { float:right; background:none; border:none; color:var(--text3); cursor:pointer; font-size:12px; padding:0; }
+
+
+
+/* 身体指标 */
+.ft-metric-form { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
+.ft-metric-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px; }
+.ft-metric-group { display:flex; flex-direction:column; gap:4px; }
+.ft-metric-label { font-size:11px; font-weight:700; color:var(--text3); letter-spacing:1px; }
+.ft-metric-input-wrap { display:flex; align-items:center; gap:4px; }
+.ft-metric-input { flex:1; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 10px; color:var(--text); font-size:16px; font-family:inherit; outline:none; -webkit-appearance:none; text-align:right; }
+.ft-metric-input:focus { border-color:var(--green); }
+.ft-metric-unit { font-size:12px; color:var(--text3); white-space:nowrap; }
+.ft-metric-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-bottom:8px; display:flex; align-items:center; gap:12px; }
+.ft-metric-date { font-size:11px; color:var(--text3); min-width:70px; }
+.ft-metric-vals { display:flex; gap:12px; flex:1; flex-wrap:wrap; }
+.ft-metric-val { display:flex; flex-direction:column; align-items:center; }
+.ft-metric-val-n { font-family:'Bebas Neue',sans-serif; font-size:1.3rem; color:var(--text); line-height:1; }
+.ft-metric-val-l { font-size:10px; color:var(--text3); margin-top:2px; }
+.ft-metric-del { background:none; border:none; color:var(--text3); cursor:pointer; font-size:14px; }
+
+.ft-empty { text-align:center; padding:32px 16px; color:var(--text3); font-size:12px; }
+.ft-toast { position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%); background:var(--green); color:#fff; padding:8px 18px; border-radius:20px; font-size:12px; font-weight:700; opacity:0; transition:opacity 0.3s; z-index:999; white-space:nowrap; pointer-events:none; }
+.ft-toast.show { opacity:1; }
+</style>
+
+<div class="ft-wrap">
+<div class="ft-tabs">
+  <button class="ft-tab active" onclick="switchFitTab('overview',this)">总览</button>
+  <button class="ft-tab" onclick="switchFitTab('log',this)">训练记录</button>
+  <button class="ft-tab" onclick="switchFitTab('metrics',this)">身体指标</button>
+</div>
+
+<!-- 总览 -->
+<div class="ft-section active" id="ft-overview">
+  <div class="ft-overview-stats">
+    <div class="ft-stat-box"><div class="ft-stat-n" id="ft-total-sessions">0</div><div class="ft-stat-l">训练场次</div></div>
+    <div class="ft-stat-box"><div class="ft-stat-n" id="ft-this-month">0</div><div class="ft-stat-l">本月场次</div></div>
+  </div>
+  <div class="ft-part-chips" id="ft-part-summary"></div>
+  <div class="ft-recent-title">最近训练</div>
+  <div id="ft-recent-list"><div class="ft-empty">还没有训练记录</div></div>
+</div>
+
+<!-- 训练记录 -->
+<div class="ft-section" id="ft-log">
+  <div class="ft-log-form">
+    <div class="ft-form-title">+ 记录这次训练</div>
+    <div class="ft-form-group">
+      <label class="ft-form-label">日期</label>
+      <input type="date" class="ft-form-input" id="ft-date">
+    </div>
+    <div class="ft-form-group">
+      <label class="ft-form-label">训练部位</label>
+      <div class="ft-part-select" id="ft-part-select"></div>
+    </div>
+    <div class="ft-form-group">
+      <label class="ft-form-label">动作记录 <span style="color:var(--text3);font-weight:300">（组数 × 次数 / 重量kg）</span></label>
+      <div class="ft-exercises" id="ft-exercises"></div>
+      <button class="ft-add-ex-btn" onclick="addExerciseRow()">+ 添加动作</button>
+    </div>
+    <div class="ft-form-group">
+      <label class="ft-form-label">备注感受</label>
+      <textarea class="ft-form-textarea" id="ft-note" placeholder="今天状态如何、有什么收获或问题…"></textarea>
+    </div>
+    <button class="ft-submit-btn" onclick="submitFitSession()">保存训练记录</button>
+  </div>
+  <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--text3);margin-bottom:10px">历史记录</div>
+  <div id="ft-session-list"><div class="ft-empty">还没有训练记录</div></div>
+</div>
+
+<!-- 身体指标 -->
+<div class="ft-section" id="ft-metrics">
+  <div class="ft-metric-form">
+    <div class="ft-form-title">记录今日指标</div>
+    <div class="ft-metric-row">
+      <div class="ft-metric-group">
+        <div class="ft-metric-label">体重</div>
+        <div class="ft-metric-input-wrap">
+          <input type="number" class="ft-metric-input" id="ft-weight" placeholder="70" step="0.1">
+          <span class="ft-metric-unit">kg</span>
+        </div>
+      </div>
+      <div class="ft-metric-group">
+        <div class="ft-metric-label">体脂率</div>
+        <div class="ft-metric-input-wrap">
+          <input type="number" class="ft-metric-input" id="ft-bodyfat" placeholder="18" step="0.1">
+          <span class="ft-metric-unit">%</span>
+        </div>
+      </div>
+    </div>
+    <div class="ft-metric-row">
+      <div class="ft-metric-group">
+        <div class="ft-metric-label">胸围</div>
+        <div class="ft-metric-input-wrap">
+          <input type="number" class="ft-metric-input" id="ft-chest" placeholder="90" step="0.5">
+          <span class="ft-metric-unit">cm</span>
+        </div>
+      </div>
+      <div class="ft-metric-group">
+        <div class="ft-metric-label">腰围</div>
+        <div class="ft-metric-input-wrap">
+          <input type="number" class="ft-metric-input" id="ft-waist" placeholder="75" step="0.5">
+          <span class="ft-metric-unit">cm</span>
+        </div>
+      </div>
+    </div>
+    <div class="ft-metric-row">
+      <div class="ft-metric-group">
+        <div class="ft-metric-label">臂围</div>
+        <div class="ft-metric-input-wrap">
+          <input type="number" class="ft-metric-input" id="ft-arm" placeholder="35" step="0.5">
+          <span class="ft-metric-unit">cm</span>
+        </div>
+      </div>
+      <div class="ft-metric-group">
+        <div class="ft-metric-label">大腿围</div>
+        <div class="ft-metric-input-wrap">
+          <input type="number" class="ft-metric-input" id="ft-thigh" placeholder="55" step="0.5">
+          <span class="ft-metric-unit">cm</span>
+        </div>
+      </div>
+    </div>
+    <div class="ft-form-group" style="margin-top:4px">
+      <label class="ft-form-label">日期</label>
+      <input type="date" class="ft-form-input" id="ft-metric-date">
+    </div>
+    <button class="ft-submit-btn" onclick="submitMetrics()">保存指标</button>
+  </div>
+  <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--text3);margin-bottom:10px">历史记录</div>
+  <div id="ft-metrics-list"><div class="ft-empty">还没有指标记录</div></div>
+</div>
+
+</div>
+<div class="ft-toast" id="ft-toast"></div>
+`;
+}
+
+let selectedParts = [];
+
+function initFitnessEvents() {
+  // 日期默认今天
+  const today = new Date().toISOString().split('T')[0];
+  const d = document.getElementById('ft-date');
+  if(d) d.value = today;
+  const md = document.getElementById('ft-metric-date');
+  if(md) md.value = today;
+
+  // 部位选择按钮
+  const partSelect = document.getElementById('ft-part-select');
+  if(partSelect) {
+    partSelect.innerHTML = FIT_PARTS.map(p =>
+      `<button class="ft-part-btn" style="" onclick="toggleFitPart('${p}',this)">${p}</button>`
+    ).join('');
+  }
+
+  // 默认一行动作
+  addExerciseRow();
+
+  renderFitOverview();
+  renderFitSessions();
+  renderMetrics();
+}
+
+function switchFitTab(tab, btn) {
+  document.querySelectorAll('.ft-tab').forEach(b => b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  document.querySelectorAll('.ft-section').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('ft-' + tab);
+  if(el) el.classList.add('active');
+  if(tab === 'overview') renderFitOverview();
+  if(tab === 'log') renderFitSessions();
+  if(tab === 'metrics') renderMetrics();
+}
+
+function toggleFitPart(part, btn) {
+  const idx = selectedParts.indexOf(part);
+  if(idx > -1) {
+    selectedParts.splice(idx, 1);
+    btn.classList.remove('selected');
+    btn.style.background = '';
+    btn.style.borderColor = '';
+    btn.style.color = '';
+  } else {
+    selectedParts.push(part);
+    btn.classList.add('selected');
+    btn.style.background = FIT_COLORS[part] || '#888';
+    btn.style.borderColor = 'transparent';
+    btn.style.color = '#fff';
+  }
+}
+
+function addExerciseRow() {
+  const container = document.getElementById('ft-exercises');
+  if(!container) return;
+  const row = document.createElement('div');
+  row.className = 'ft-exercise-row';
+  row.innerHTML = `
+    <input class="ft-form-input ft-ex-name" placeholder="动作名称" style="flex:1;padding:6px 8px;font-size:13px">
+    <input type="number" class="ft-ex-sets" placeholder="组" min="1">
+    <input type="number" class="ft-ex-reps" placeholder="次" min="1">
+    <input type="number" class="ft-ex-weight" placeholder="kg" min="0" step="2.5">
+    <button class="ft-ex-del" onclick="this.closest('.ft-exercise-row').remove()">×</button>`;
+  container.appendChild(row);
+}
+
+function submitFitSession() {
+  const date = document.getElementById('ft-date')?.value;
+  const note = document.getElementById('ft-note')?.value.trim();
+  if(!selectedParts.length) { showFitToast('请选择训练部位'); return; }
+
+  const exercises = [];
+  document.querySelectorAll('#ft-exercises .ft-exercise-row').forEach(row => {
+    const name = row.querySelector('.ft-ex-name')?.value.trim();
+    const sets = row.querySelector('.ft-ex-sets')?.value;
+    const reps = row.querySelector('.ft-ex-reps')?.value;
+    const weight = row.querySelector('.ft-ex-weight')?.value;
+    if(name) exercises.push({ name, sets: sets||'', reps: reps||'', weight: weight||'' });
+  });
+
+  const data = loadFitData();
+  data.sessions.unshift({
+    id: Date.now() + '_' + Math.random().toString(36).slice(2),
+    date: date || new Date().toISOString().split('T')[0],
+    parts: [...selectedParts],
+    exercises,
+    note,
+  });
+  saveFitData(data);
+
+  // reset form
+  selectedParts = [];
+  document.querySelectorAll('#ft-part-select .ft-part-btn').forEach(b => {
+    b.classList.remove('selected');
+    b.style.background = '';
+    b.style.borderColor = '';
+    b.style.color = '';
+  });
+  document.getElementById('ft-exercises').innerHTML = '';
+  addExerciseRow();
+  if(document.getElementById('ft-note')) document.getElementById('ft-note').value = '';
+
+  renderFitSessions();
+  renderFitOverview();
+  showFitToast('✅ 训练记录已保存');
+}
+
+function renderFitSessions() {
+  const list = document.getElementById('ft-session-list');
+  if(!list) return;
+  const data = loadFitData();
+  if(!data.sessions.length) { list.innerHTML = '<div class="ft-empty">还没有训练记录</div>'; return; }
+  list.innerHTML = data.sessions.map(s => {
+    const color = FIT_COLORS[s.parts[0]] || '#888';
+    const partLabel = s.parts.join(' · ');
+    const exRows = s.exercises.map(e => {
+      let detail = '';
+      if(e.sets) detail += e.sets + '组';
+      if(e.reps) detail += ' × ' + e.reps + '次';
+      if(e.weight) detail += ' · ' + e.weight + 'kg';
+      return `<div class="ft-session-ex-row"><span class="ft-session-ex-name">${e.name}</span><span>${detail}</span></div>`;
+    }).join('');
+    return `<div class="ft-session-card">
+      <div class="ft-session-top">
+        <span class="ft-session-date">${(s.date||'').replace(/-/g,' · ')}</span>
+        <span class="ft-session-part" style="background:${color}">${partLabel}</span>
+        <button class="ft-session-del" onclick="deleteFitSession('${s.id}')">删除</button>
+      </div>
+      ${exRows ? `<div class="ft-session-exercises">${exRows}</div>` : ''}
+      ${s.note ? `<div class="ft-session-note">${s.note}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function deleteFitSession(id) {
+  if(!confirm('确认删除这条记录？')) return;
+  const data = loadFitData();
+  data.sessions = data.sessions.filter(s => s.id !== id);
+  saveFitData(data);
+  renderFitSessions();
+  renderFitOverview();
+  showFitToast('已删除');
+}
+
+function renderFitOverview() {
+  const data = loadFitData();
+  const total = data.sessions.length;
+  const thisMonth = new Date().toISOString().slice(0,7);
+  const monthCount = data.sessions.filter(s => (s.date||'').startsWith(thisMonth)).length;
+  const el = document.getElementById('ft-total-sessions');
+  if(el) el.textContent = total;
+  const mel = document.getElementById('ft-this-month');
+  if(mel) mel.textContent = monthCount;
+
+  // part summary
+  const partCount = {};
+  data.sessions.forEach(s => s.parts.forEach(p => { partCount[p] = (partCount[p]||0)+1; }));
+  const summary = document.getElementById('ft-part-summary');
+  if(summary) {
+    summary.innerHTML = Object.entries(partCount).sort((a,b)=>b[1]-a[1]).map(([p,n]) =>
+      `<span class="ft-part-chip" style="background:${FIT_COLORS[p]||'#888'};color:#fff">${p} ${n}</span>`
+    ).join('');
+  }
+
+  // recent 3
+  const recent = document.getElementById('ft-recent-list');
+  if(!recent) return;
+  if(!data.sessions.length) { recent.innerHTML = '<div class="ft-empty">还没有训练记录</div>'; return; }
+  recent.innerHTML = data.sessions.slice(0,3).map(s => {
+    const color = FIT_COLORS[s.parts[0]] || '#888';
+    return `<div class="ft-session-card">
+      <div class="ft-session-top">
+        <span class="ft-session-date">${(s.date||'').replace(/-/g,' · ')}</span>
+        <span class="ft-session-part" style="background:${color}">${s.parts.join(' · ')}</span>
+      </div>
+      ${s.exercises.slice(0,2).map(e=>`<div style="font-size:12px;color:var(--text2);margin-top:3px">${e.name}${e.sets?' · '+e.sets+'组':''}</div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+// ── 训练计划 ──
+const WEEK_DAYS = ['周一','周二','周三','周四','周五','周六','周日'];
+
+function renderFitPlan() {
+  const data = loadFitData();
+  const grid = document.getElementById('ft-plan-grid');
+  if(!grid) return;
+  grid.innerHTML = WEEK_DAYS.map((day, i) => {
+    const plan = data.plans[i] || null;
+    const chips = plan ? plan.parts.map(p =>
+      `<span class="ft-plan-chip" style="background:${FIT_COLORS[p]||'#888'}">${p}</span>`
+    ).join('') : '';
+    return `<div class="ft-plan-card" onclick="editFitPlan(${i})">
+      <div class="ft-plan-day">${day}</div>
+      <div class="ft-plan-name">${plan ? plan.name : '休息日'}</div>
+      <div class="ft-plan-parts">${chips || '<span style="font-size:11px;color:var(--text3)">点击设置</span>'}</div>
+    </div>`;
+  }).join('');
+}
+
+function editFitPlan(dayIdx) {
+  const data = loadFitData();
+  const plan = data.plans[dayIdx] || { name:'', parts:[] };
+  const area = document.getElementById('ft-plan-edit-area');
+  if(!area) return;
+  area.style.display = 'block';
+  area.innerHTML = `
+    <div class="ft-log-form" style="margin-top:10px">
+      <div class="ft-form-title">编辑 ${WEEK_DAYS[dayIdx]}</div>
+      <div class="ft-form-group">
+        <label class="ft-form-label">计划名称</label>
+        <input class="ft-form-input" id="ft-plan-name" placeholder="如：胸背日、腿日" value="${plan.name}">
+      </div>
+      <div class="ft-form-group">
+        <label class="ft-form-label">训练部位</label>
+        <div class="ft-part-select" id="ft-plan-parts">
+          ${FIT_PARTS.map(p => {
+            const sel = plan.parts.includes(p);
+            return `<button class="ft-part-btn${sel?' selected':''}" style="${sel?'background:'+FIT_COLORS[p]+';color:#fff;border-color:transparent':''}" onclick="togglePlanPart('${p}',this)">${p}</button>`;
+          }).join('')}
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="ft-submit-btn" style="background:var(--text3)" onclick="document.getElementById('ft-plan-edit-area').style.display='none'">取消</button>
+        <button class="ft-submit-btn" onclick="saveFitPlan(${dayIdx})">保存</button>
+      </div>
+    </div>`;
+  area.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+let planSelectedParts = [];
+function togglePlanPart(part, btn) {
+  btn.classList.toggle('selected');
+  if(btn.classList.contains('selected')) {
+    btn.style.background = FIT_COLORS[part] || '#888';
+    btn.style.color = '#fff';
+    btn.style.borderColor = 'transparent';
+  } else {
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.style.borderColor = '';
+  }
+}
+
+function saveFitPlan(dayIdx) {
+  const name = document.getElementById('ft-plan-name')?.value.trim();
+  const parts = Array.from(document.querySelectorAll('#ft-plan-parts .ft-part-btn.selected')).map(b => b.textContent);
+  const data = loadFitData();
+  if(name || parts.length) {
+    data.plans[dayIdx] = { name: name || '训练日', parts };
+  } else {
+    delete data.plans[dayIdx];
+  }
+  saveFitData(data);
+  document.getElementById('ft-plan-edit-area').style.display = 'none';
+  renderFitPlan();
+  showFitToast('✅ 计划已保存');
+}
+
+// ── 身体指标 ──
+function submitMetrics() {
+  const date = document.getElementById('ft-metric-date')?.value || new Date().toISOString().split('T')[0];
+  const weight = document.getElementById('ft-weight')?.value;
+  const bodyfat = document.getElementById('ft-bodyfat')?.value;
+  const chest = document.getElementById('ft-chest')?.value;
+  const waist = document.getElementById('ft-waist')?.value;
+  const arm = document.getElementById('ft-arm')?.value;
+  const thigh = document.getElementById('ft-thigh')?.value;
+  if(!weight && !bodyfat && !chest && !waist && !arm && !thigh) {
+    showFitToast('请至少填写一项指标'); return;
+  }
+  const metrics = loadMetrics();
+  metrics.unshift({ id: Date.now()+'', date, weight, bodyfat, chest, waist, arm, thigh });
+  saveMetrics(metrics);
+  ['ft-weight','ft-bodyfat','ft-chest','ft-waist','ft-arm','ft-thigh'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  renderMetrics();
+  showFitToast('✅ 指标已记录');
+}
+
+function renderMetrics() {
+  const list = document.getElementById('ft-metrics-list');
+  if(!list) return;
+  const metrics = loadMetrics();
+  if(!metrics.length) { list.innerHTML = '<div class="ft-empty">还没有指标记录</div>'; return; }
+  list.innerHTML = metrics.map(m => {
+    const vals = [
+      m.weight ? `<div class="ft-metric-val"><div class="ft-metric-val-n">${m.weight}</div><div class="ft-metric-val-l">体重kg</div></div>` : '',
+      m.bodyfat ? `<div class="ft-metric-val"><div class="ft-metric-val-n">${m.bodyfat}</div><div class="ft-metric-val-l">体脂%</div></div>` : '',
+      m.chest ? `<div class="ft-metric-val"><div class="ft-metric-val-n">${m.chest}</div><div class="ft-metric-val-l">胸围cm</div></div>` : '',
+      m.waist ? `<div class="ft-metric-val"><div class="ft-metric-val-n">${m.waist}</div><div class="ft-metric-val-l">腰围cm</div></div>` : '',
+      m.arm ? `<div class="ft-metric-val"><div class="ft-metric-val-n">${m.arm}</div><div class="ft-metric-val-l">臂围cm</div></div>` : '',
+      m.thigh ? `<div class="ft-metric-val"><div class="ft-metric-val-n">${m.thigh}</div><div class="ft-metric-val-l">腿围cm</div></div>` : '',
+    ].filter(Boolean).join('');
+    return `<div class="ft-metric-card">
+      <div class="ft-metric-date">${(m.date||'').replace(/-/g,' · ')}</div>
+      <div class="ft-metric-vals">${vals}</div>
+      <button class="ft-metric-del" onclick="deleteMetric('${m.id}')">×</button>
+    </div>`;
+  }).join('');
+}
+
+function deleteMetric(id) {
+  if(!confirm('确认删除？')) return;
+  const metrics = loadMetrics().filter(m => m.id !== id);
+  saveMetrics(metrics);
+  renderMetrics();
+}
+
+function showFitToast(msg) {
+  const t = document.getElementById('ft-toast');
+  if(!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2000);
 }
 </script>
 </body>

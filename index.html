@@ -691,7 +691,7 @@ body::before {
 .hero-bg-text { display: none; }
 .hero-photo {
   position: absolute; inset: 0;
-  background-size: cover; background-position: center 30%;
+  background-size: cover; background-position: center 15%;
   filter: brightness(0.62) saturate(0.95);
 }
 .hero-photo-overlay {
@@ -730,20 +730,7 @@ body::before {
   border-radius: 99px; letter-spacing: 0.03em;
   backdrop-filter: blur(4px);
 }
-.hero-stats {
-  display: flex; align-items: center; position: relative; z-index: 1;
-  background: rgba(255,255,255,0.15);
-  border: 1px solid rgba(255,255,255,0.25);
-  border-radius: var(--radius); padding: 0.875rem 0;
-  backdrop-filter: blur(8px);
-}
-.hstat { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
-.hstat-n {
-  font-family: 'Bebas Neue', sans-serif; font-size: 1.75rem;
-  color: #fff; line-height: 1; text-shadow: 0 1px 4px rgba(0,0,0,0.4);
-}
-.hstat-l { font-size: 11px; color: rgba(255,255,255,0.7); }
-.hstat-div { width: 1px; height: 32px; background: rgba(255,255,255,0.2); flex-shrink: 0; }
+
 
 /* ── MODULE GRID ── */
 .module-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.5rem; }
@@ -854,15 +841,7 @@ body::before {
       </div>
     </div>
   </div>
-  <div class="hero-stats">
-    <div class="hstat"><span class="hstat-n" id="cnt-player">0</span><span class="hstat-l">打球</span></div>
-    <div class="hstat-div"></div>
-    <div class="hstat"><span class="hstat-n" id="cnt-coach">0</span><span class="hstat-l">执教</span></div>
-    <div class="hstat-div"></div>
-    <div class="hstat"><span class="hstat-n" id="cnt-ref">0</span><span class="hstat-l">执裁</span></div>
-    <div class="hstat-div"></div>
-    <div class="hstat"><span class="hstat-n" id="cnt-fit">0</span><span class="hstat-l">健身</span></div>
-  </div>
+
 </div>
 
 <!-- ROLE NAV -->
@@ -1123,9 +1102,7 @@ function updateStats() {
   const p = document.getElementById('entries-player').querySelectorAll('.card[data-role]').length;
   const c = document.getElementById('entries-coach').querySelectorAll('.card[data-role]').length;
   const r = document.getElementById('entries-ref').querySelectorAll('.card[data-role]').length;
-  document.getElementById('cnt-player').textContent = p;
-  document.getElementById('cnt-coach').textContent = c;
-  document.getElementById('cnt-ref').textContent = r;
+  // stats shown on module cards only (home-cnt-*)
   // fitness count
   try {
     const fd = JSON.parse(localStorage.getItem('bball_fitness_v1') || '{"sessions":[]}');

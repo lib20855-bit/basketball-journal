@@ -970,17 +970,20 @@ function loadEntries() {
 }
 function saveEntries() {
   // save from source containers ONLY, never from display area
+  const mediaIdx = loadMediaIndex();
   const entries = [];
   ['player','coach','ref'].forEach(role => {
     document.getElementById('entries-'+role).querySelectorAll('.card[data-role]').forEach(card => {
+      const id = card.dataset.id || '';
       entries.push({
-        id:    card.dataset.id || '',
+        id,
         role:  card.dataset.role,
         date:  card.dataset.date || '',
         title: card.querySelector('.card-title')?.textContent || '',
         text:  card.querySelector('.card-text')?.textContent || '',
         tag:   card.querySelector('.card-tag')?.textContent || '',
         chips: Array.from(card.querySelectorAll('.chip')).map(c => c.textContent),
+        media: (id && mediaIdx[id]) ? mediaIdx[id] : [],
       });
     });
   });
@@ -996,6 +999,17 @@ function saveMediaIndex(idx) {
 // ── RENDER SAVED ENTRIES ──
 function renderSavedEntries() {
   const entries = loadEntries();
+  // 把 entry.media 同步回 bball_media_v1，统一来源
+  const mediaIdx = loadMediaIndex();
+  let mediaChanged = false;
+  entries.forEach(e => {
+    if(e.id && e.media && e.media.length > 0 && !mediaIdx[e.id]) {
+      mediaIdx[e.id] = e.media;
+      mediaChanged = true;
+    }
+  });
+  if(mediaChanged) saveMediaIndex(mediaIdx);
+
   entries.forEach(e => {
     const rc = roleColors[e.role];
     if(!rc) return;
@@ -1005,7 +1019,6 @@ function renderSavedEntries() {
     card.className = 'card';
     card.dataset.role = e.role;
     card.dataset.date = e.date || '';
-    // IMPORTANT: if saved entry had no id, generate one and re-save
     if(!e.id) {
       e.id = Date.now() + '_' + Math.random().toString(36).slice(2);
     }
@@ -1099,6 +1112,8 @@ function persistMedia(card, type, name, data) {
   if(type !== 'video') {
     idx[id].push({ type, name, data });
     saveMediaIndex(idx);
+    // 立刻同步到 entries，确保媒体和记录一起持久化
+    saveEntries();
   }
 }
 

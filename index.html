@@ -969,12 +969,13 @@ function loadEntries() {
   try { return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch(e) { return []; }
 }
 function saveEntries() {
-  // save from source containers ONLY, never from display area
-  const mediaIdx = loadMediaIndex();
+  // save from source containers ONLY
   const entries = [];
   ['player','coach','ref'].forEach(role => {
     document.getElementById('entries-'+role).querySelectorAll('.card[data-role]').forEach(card => {
       const id = card.dataset.id || '';
+      let media = [];
+      try { media = JSON.parse(card.dataset.media || '[]'); } catch(e) {}
       entries.push({
         id,
         role:  card.dataset.role,
@@ -983,7 +984,7 @@ function saveEntries() {
         text:  card.querySelector('.card-text')?.textContent || '',
         tag:   card.querySelector('.card-tag')?.textContent || '',
         chips: Array.from(card.querySelectorAll('.chip')).map(c => c.textContent),
-        media: (id && mediaIdx[id]) ? mediaIdx[id] : [],
+        media,
       });
     });
   });
@@ -999,35 +1000,23 @@ function saveMediaIndex(idx) {
 // ── RENDER SAVED ENTRIES ──
 function renderSavedEntries() {
   const entries = loadEntries();
-  // 把 entry.media 同步回 bball_media_v1，统一来源
-  const mediaIdx = loadMediaIndex();
-  let mediaChanged = false;
-  entries.forEach(e => {
-    if(e.id && e.media && e.media.length > 0 && !mediaIdx[e.id]) {
-      mediaIdx[e.id] = e.media;
-      mediaChanged = true;
-    }
-  });
-  if(mediaChanged) saveMediaIndex(mediaIdx);
-
   entries.forEach(e => {
     const rc = roleColors[e.role];
     if(!rc) return;
+    if(!e.id) e.id = Date.now() + '_' + Math.random().toString(36).slice(2);
     const fmtDate = (e.date||'').replace(/-/g,' · ');
     const chipHtml = (e.chips||[]).map(c=>`<span class="chip">${c}</span>`).join('');
     const card = document.createElement('div');
     card.className = 'card';
     card.dataset.role = e.role;
     card.dataset.date = e.date || '';
-    if(!e.id) {
-      e.id = Date.now() + '_' + Math.random().toString(36).slice(2);
-    }
     card.dataset.id = e.id;
+    card.dataset.media = JSON.stringify(e.media || []);  // 媒体直接存在 source card 上
     card.innerHTML = buildCardInner(e.role, fmtDate, e.tag, e.title, e.text, chipHtml);
     attachMediaUploadHandlers(card);
     const container = document.getElementById(`entries-${e.role}`);
     if(container) container.appendChild(card);
-    restoreMediaForCard(card);
+    restoreMediaForCard(card);  // 从 card.dataset.media 渲染图片
   });
 }
 
@@ -1087,11 +1076,11 @@ function getCardId(card) {
   return card.dataset.id;
 }
 function restoreMediaForCard(card) {
-  const idx = loadMediaIndex();
-  const id = card.dataset.id;
-  if(!id || !idx[id]) return;
+  let media = [];
+  try { media = JSON.parse(card.dataset.media || '[]'); } catch(e) {}
+  if(!media.length) return;
   const row = card.querySelector('.media-row');
-  idx[id].forEach(m => {
+  media.forEach(m => {
     if(m.type === 'image') {
       const wrap = document.createElement('div');
       wrap.className = 'img-item';
@@ -1106,15 +1095,24 @@ function restoreMediaForCard(card) {
   });
 }
 function persistMedia(card, type, name, data) {
-  const id = getCardId(card);
-  const idx = loadMediaIndex();
-  if(!idx[id]) idx[id] = [];
-  if(type !== 'video') {
-    idx[id].push({ type, name, data });
-    saveMediaIndex(idx);
-    // 立刻同步到 entries，确保媒体和记录一起持久化
-    saveEntries();
-  }
+  if(type === 'video') return;
+  // 找到对应的 source card（upload 可能发生在 display card 上）
+  const id = card.dataset.id;
+  if(!id) return;
+  // 找 source card
+  let sourceCard = null;
+  ['player','coach','ref'].forEach(role => {
+    const found = document.getElementById('entries-'+role).querySelector(`[data-id="${id}"]`);
+    if(found) sourceCard = found;
+  });
+  if(!sourceCard) sourceCard = card; // fallback
+  // 更新 source card 的 dataset.media
+  let media = [];
+  try { media = JSON.parse(sourceCard.dataset.media || '[]'); } catch(e) {}
+  media.push({ type, name, data });
+  sourceCard.dataset.media = JSON.stringify(media);
+  // 立刻持久化
+  saveEntries();
 }
 
 // ── STATS ──
@@ -1251,6 +1249,9 @@ function renderRoleEntries(role) {
     card.dataset.role = e.role;
     card.dataset.date = e.date || '';
     card.dataset.id = e.id;
+    // 从 source card 继承媒体数据
+    const srcCard = document.getElementById('entries-'+e.role)?.querySelector(`[data-id="${e.id}"]`);
+    card.dataset.media = srcCard ? (srcCard.dataset.media || '[]') : '[]';
     card.innerHTML = buildCardInner(e.role, fmtDate, e.tag, e.title, e.text, chipHtml);
     attachMediaUploadHandlers(card);
     restoreMediaForCard(card);
@@ -1490,6 +1491,10 @@ function submitEntry() {
     card.dataset.role = role;
     card.dataset.date = date;
     card.dataset.id   = editId;
+    // 从被删除的旧 source card 里先找媒体（已删除），从 localStorage 恢复
+    const savedEntries = loadEntries();
+    const oldEntry = savedEntries.find(en => en.id === editId);
+    card.dataset.media = JSON.stringify(oldEntry?.media || []);
     card.innerHTML = buildCardInner(role, fmtDate, tag, title, text, chipHtml);
     attachMediaUploadHandlers(card);
     restoreMediaForCard(card);
@@ -1501,6 +1506,7 @@ function submitEntry() {
     card.dataset.role = role;
     card.dataset.date = date;
     card.dataset.id   = Date.now() + '_' + Math.random().toString(36).slice(2);
+    card.dataset.media = '[]';
     card.innerHTML = buildCardInner(role, fmtDate, tag, title, text, chipHtml);
     attachMediaUploadHandlers(card);
     document.getElementById('entries-' + role).prepend(card);
